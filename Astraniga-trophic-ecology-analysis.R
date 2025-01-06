@@ -4,8 +4,7 @@
 # DOI: 
 # Date: Jan 2025
 
-
-# Set up ------------------------------------------------------------------
+# SET UP ------------------------------------------------------------------
 
 # set seed
 set.seed(500)
@@ -25,9 +24,12 @@ library('gridExtra')  #arrange plots
 library('grid')       #arranging plots 
 library(SIBER)        #SIBER plots  
 library(rjags)        #bayesian mixing models 
-#library(ggsankey)     #sankey plots 
+#devtools::install_github("davidsjoberg/ggsankey")
+library(ggsankey)     # sankey plots 
 library(cowplot)      #arranging plots 
 library(vegan)        #MANOVAs
+library('ggnewscale')   # for SIBER plot scale 
+library(scales)       # sum v 
 
 # set working directory 
 setwd('~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/')
@@ -95,7 +97,7 @@ long_light$datetime <- as.Date(long_light$datetime)
 daily_light <-long_light %>% group_by(datetime,treatment) %>%
   summarize(mean_light = mean(value))
 
-# ENVIRONMENTAL: Paired t-tests (Table S1) --------------------------------
+# ENVIRONMENTAL: Statistics (Table S1) --------------------------------
 
 # write function 
 perform_paired_t_test <- function(group1, group2, group_label) {
@@ -301,7 +303,12 @@ count_results <- count_results %>%
 write.csv(count_results, "STATS/TLAP_STATS_survival_counts.csv", row.names = FALSE)
 
 
-# ECOTYPE SWITCHING: analysis & graph -------------------------------------
+# ECOTYPE SWITCHING: analysis & graph (Fig 4) -------------------------------------
+
+
+# read phys data 
+master <- read.csv('DATA/TLAP_results_meta_phys.csv') %>%
+  filter(full_treatment != "NA")
 
 # create final ecotype categories
 master <- master %>% 
@@ -418,6 +425,7 @@ sankey_shade <- ggplot(df2_shdae , aes(x = x,
   # Add a colored box using annotation_custom
   annotate("rect", xmin = 0.8, xmax = 0.9, ymin = -Inf, ymax = Inf, fill = "#8A4594", color="black") +  # Box properties
   annotate("text", x = .85, y = 0, label = "Shade", size = 6, angle = 90, color = "white", hjust = 0.5)
+sankey_shade
 
 # DEEP 
 
@@ -469,12 +477,12 @@ sankey_deep <- ggplot(df2_deep, aes(x = x,
   annotate("rect", xmin = 0.8, xmax = 0.9, ymin = -Inf, ymax = Inf, fill = "#210124", color="white") +  # Box properties
   annotate("text", x = .85, y = 0, label = "Deep", size = 6, angle = 90, color = "white", hjust = 0.5)
 
-#sankey_control
-#sankey_shade
-#sankey_deep
+sankey_control
+sankey_shade
+sankey_deep
 
 #combine ecotype and treatment 
-all <- grid.arrange(sankey_control, sankey_shade, sankey_deep, nrow=3, 
+all <- grid.arrange(sankey_control, sankey_shade, sankey_deep, nrow=3,
                     bottom = grobTree(
                       textGrob("Initial", x = 0.255, y = 2, just = "left", gp = gpar(fontsize = 18)),
                       textGrob("Final", x = 0.745, y = 2, just = "right", gp = gpar(fontsize = 18)),
@@ -493,13 +501,10 @@ all <- grid.arrange(sankey_control, sankey_shade, sankey_deep, nrow=3,
                       textGrob("100%", x = .66, y = 12, just = "right", gp = gpar(fontsize = 16))
                     ))
 
-ggsave("sankey_sym_switch.jpg", all, path = '~/Desktop/TLAP_CSIA_Manuscript/Graphs/', height=10, width = 12)
+ggsave("TLAP_FIG_4_ecotype_switch.jpg", all, path = 'FIGURES/', height=10, width = 12)
 
 
 # PHYSIOLOGY:  ------------------------------------------------------------
-
-# read phys data 
-master <- read.csv('DATA/TLAP_results_meta_phys.csv') 
 
 # create new columns 
 master <- master %>%
@@ -885,15 +890,16 @@ all_metab <-plot_grid(g_treat1, g_eco1, g_treat2, g_eco2,
                       ncol = 4, rel_widths = c(1, 1.3, 1, 1.3))
 
 #save 2x6 graphs 
-ggsave("TLAP_arrange_all.jpg", plot = all_metab, path = '~/Desktop/TLAP_CSIA_Manuscript/Graphs/', width = 30, height = 40)
-``` 
-*All physiology & morphology data*
-  
-  \newpage
-## C and N CSIA results 
+ggsave("TLAP_Fig_5_phys.jpg", plot = all_metab, path = 'FIGURES/', width = 30, height = 40)
 
-```{r CSIA, fig.show="hold"}
 
+
+
+
+
+# ISOTOPES: data & basic plots (Fig S1) ----------------------------------------------------------------
+
+# load raw isotope data 
 raw <- read.csv('~/Desktop/GITHUB/TL_Astrangia/TLAP_CSIA/TLAP_CSIA_results.csv') %>%
   filter(remove == "N")
 
@@ -904,7 +910,7 @@ metadata <- master %>%
 raw2 <-  merge(metadata, raw, by="sample_id") %>%
   dplyr::select(full_id, sample_id, round, vial, element, fraction, Apo_Sym, treatment, full_treatment, sym.cm2, Ala, Gly, Thr, Ser, Val, Leu, Ile, Nle, Pro, Asx, Met, Glx, Phe, Lys, Arg) 
 
-write.csv(file = "~/Desktop/GITHUB/TL_Astrangia/TLAP_Raw_Data/TLAP_ALL_Isotope_Results.csv", raw2)
+#write.csv(file = "STATS/TLAP_ALL_Isotope_Results.csv", raw2)
 
 # reorder treatments 
 raw2$treatment <- factor(raw2$treatment, levels = c("control", "shade", "deep"))
@@ -947,10 +953,6 @@ c_boxplot_frac <- ggplot(c_long) +
   )
 #c_boxplot_frac
 
-#labs(x = "", y = bquote("Chlorophyll a (ug/" ~ cm^2 ~ ")")) + 
-
-ggsave("TLAP_CSIA_C_boxplot_frac.jpg", plot=c_boxplot_frac, path = "~/Desktop/TLAP_CSIA_Manuscript/Graphs/",width = 14, height = 5)
-
 custom_n_colors <- c("Gly" = "white", "Ser"= "white","Asx"= "dimgray", "Glx"= "dimgray", "Pro"= "dimgray", "Ala"= "dimgray", "Thr" = "gray", "Lys"= "white", "Ile"= "dimgray", "Met"= "white", "Val"= "dimgray", "Phe"= "white", "Leu"= "dimgray", "Arg" = "white")
 
 # N BASIC GGPLOT 
@@ -968,7 +970,6 @@ N_boxplot_frac <- ggplot(n_long) +
     plot.margin=unit(c(0,0,0,0),"cm")
   )
 #N_boxplot_frac
-ggsave("TLAP_CSIA_N_boxplot_frac.jpg", plot=N_boxplot_frac, path = "~/Desktop/TLAP_CSIA_Manuscript/Graphs/",width = 14, height = 5)
 
 # ARRANGE 
 
@@ -978,7 +979,9 @@ supp_arrange <- grid.arrange(c_boxplot_frac, N_boxplot_frac, nrow=2,
                                textGrob("B", x = 0.1, y = 71, just = "right", gp = gpar(fontsize = 30, fontface = "bold"))
                              ))
 
-ggsave("TLAP_CSIA_supp_boxplots.jpg", plot=supp_arrange, path = "~/Desktop/TLAP_CSIA_Manuscript/Graphs/",width = 15, height = 15)
+ggsave("TLAP_FIG_S1_Isotopes.jpg", plot=supp_arrange, path = "FIGURES/",width = 15, height = 15)
+
+# ISOTOPES: amino acid stats  ---------------------------------------------
 
 ### SOURCE AMINO ACID MANOVAs
 
@@ -1030,14 +1033,10 @@ matrix6<- as.matrix(n_trophic_ecotype[,2:5]) # response variables
 manova6<-manova(matrix6~as.factor(Apo_Sym), data=n_trophic_ecotype)
 summary(manova6) # p = 0.445
 
-```
 
-\newpage
-## SIBER
+# ISOTOPES: SIBER analysis ---------------------------------------------------------
 
-```{r SIBER, fig.show="hold"}
-
-# all the stuff that only needs to happen once 
+# Set up & parameters for SIBER analysis & Baysean models 
 
 EAAs <- raw2 %>%
   filter(element == "C") %>% 
@@ -1149,8 +1148,7 @@ colnames(sib_treatment) <- c("iso1", "iso2", "group", "community") # rename colu
 sib_treatment_s <- pca_data_treatment_s %>% dplyr::select(PC1, PC2, treatment, comm) 
 colnames(sib_treatment_s) <- c("iso1", "iso2", "group", "community") # rename column labels
 
-
-# Plot Ellipses & SEA ------------------------------------------------------
+# Plot Ellipses and SEAs
 
 # create siber object 
 siber_fraction <- createSiberObject(sib_fraction)
@@ -1168,7 +1166,7 @@ summary_ecotype_s <- groupMetricsML(siber_ecotype_s)
 summary_treatment <- groupMetricsML(siber_treatment)
 summary_treatment_s <- groupMetricsML(siber_treatment_s)
 
-# Ellipse overlap  ---------------------------------------------------------
+# Ellipse overlap
 
 # the overlap betweeen the corresponding 40% prediction ellipses is given by:
 # returns 3 numbers: size of ellipse 2, size of overlap 
@@ -1206,9 +1204,6 @@ percent_overlap_treatment_na_s <- overlap_treatment_na_s[3] /
   (overlap_treatment_na_s[2] + overlap_treatment_na_s[1] - overlap_treatment_na_s[3])
 
 # BAYESIAN MODEL 
-
-# set seed
-set.seed(500)
 
 model_fraction <- siberMVN(siber_fraction, parms, priors)
 model_ecotype <- siberMVN(siber_ecotype, parms, priors)
@@ -1248,36 +1243,7 @@ SEAb_cred_treatment_s <- lapply(as.data.frame(SEAb_treatment_s),
                                 function(x,...){tmp<-hdrcde::hdr(x)$hdr},prob = cr.p)
 SEAb_cred_fraction
 
-# Centroid Distance -------------------------------------------------------
-
-# extract the centroids from the fitted model object
-centroids_fraction <- siberCentroids(model_fraction)
-centroids_ecotype <- siberCentroids(model_ecotype)
-centroids_ecotype_s <- siberCentroids(model_ecotype_s)
-centroids_treatment <- siberCentroids(model_treatment)
-
-# Assuming you have two groups with centroids extracted
-centroids_fraction_1 <- centroids_fraction[[1]]   # Coordinates for the first group (PC1, PC2)
-centroids_fraction_2 <- centroids_fraction[[2]]  # Coordinates for the second group (PC1, PC2)
-
-centroids_ecotype_1 <- centroids_ecotype[[1]]   
-centroids_ecotype_2 <- centroids_ecotype[[2]]
-
-centroids_ecotype_s_1 <- centroids_ecotype_s[[1]]   
-centroids_ecotype_s_2 <- centroids_ecotype_s[[2]]
-
-#centroids_treatment_1 <-  centroids_treatment[[1]]   
-#centroids_treatment_2 <- centroids_treatment[[2]]
-#centroids_treatment_3 <- centroids_treatment[[3]]
-
-# Calculate the Euclidean distance between the two centroids
-centroid_distance_fraction <- sqrt((centroids_fraction_1[1] - centroids_fraction_2[1])^2 + (centroids_fraction_1[2] - centroids_fraction_2[2])^2)
-
-centroid_distance_ecotype <- sqrt((centroids_ecotype_1[1] - centroids_ecotype_2[1])^2 + (centroids_ecotype_1[2] - centroids_ecotype_2[2])^2)
-
-centroid_distance_ecotype_s <- sqrt((centroids_ecotype_s_1[1] - centroids_ecotype_s_2[1])^2 + (centroids_ecotype_s_1[2] - centroids_ecotype_s_2[2])^2)
-
-########## 
+# Centroid distances 
 
 # Graph prep 
 
@@ -1292,13 +1258,23 @@ t_clrs <- matrix(c("#4d2f51", "#4d2f51", "#4d2f51",
                    "#C0C0E1", "#C0C0E1", "#C0C0E1",
                    "#8A4594", "#8A4594", "#8A4594"), nrow = 3, ncol = 3)
 
-#ggplot(sib_fraction, aes(x=iso1, y=iso2, color= group)) + geom_point()
 
-png("~/Desktop/TLAP_CSIA_Manuscript/Graphs/siber_plot_fraction.png", width = 700, height = 700)
+# ISOTOPES: SIBER plots (FIG 6) ---------------------------------------------------
+
+# SIBER BY FRACTION
+
+# stats
+summary_fraction # TA, SEA, SEAc 
+overlap_fraction # ellipse overlap fraction
+percent_overlap_fraction # percent ellipse overlap 
+SEAb_modes_fraction # modes
+SEAb_cred_fraction # credibilities 
+
+#plot siber 
+png("~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/FIGURES/SIBER/siber_plot_fraction.png", width = 700, height = 700)
 # Print siber plot 
-siber_plot_fraction <- recordPlot({
-  palette(c("#353535","#1b9e29"))
-  plotSiberObject(siber_fraction,
+palette(c("#353535","#1b9e29"))
+plotSiberObject(siber_fraction,
                   ax.pad = 2,  #determines the padding applied around the extremes of the data.
                   ellipses = T, #Ellipses are drawn for each group independently with 
                   group.ellipses.args = group.ellipses.args, # ellipse data 
@@ -1316,25 +1292,15 @@ siber_plot_fraction <- recordPlot({
                   x.limits = c(-3.5,3.5),
                   y.limits = c(-2,3.5)
   )
-})
 dev.off()
 
-# summary stats 
-print("SEA summary stats")
-print(summary_fraction)
-
-# Ellipse overlap 
-print(c("Ellipse overlap", overlap_fraction))
-print(c("percent overlap", percent_overlap_fraction))
-
-# Seab 
-
-png("~/Desktop/TLAP_CSIA_Manuscript/Graphs/siber_plot_fraction_seab.png", width = 400, height = 700)
+# SEAb 
+png("~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/FIGURES/SIBER/siber_plot_fraction_seab.png", width = 400, height = 700)
 # SEAb density plot 
 siberDensityPlot(
   SEAb_fraction,
   clr = f_clrs,
-  xticklabels = c("", ""),              #####
+  xticklabels = c("", ""),              
   xlab = c(""),
   ylab = c(""),
   bty = "L",
@@ -1345,23 +1311,20 @@ siberDensityPlot(
 )
 
 # Step 2: Add points to the existing plot
-points(1:ncol(SEAb_fraction), summary_fraction[3,], col = "red", pch = "x", lwd = 2)     ###
+points(1:ncol(SEAb_fraction), summary_fraction[3,], col = "red", pch = "x", lwd = 2)   
 dev.off()
 
-print("Modes")
-SEAb_modes_fraction
+# SIBER BY ECOTYPE - HOST 
 
-print("Credibilities")
-SEAb_cred_fraction
+# stats
+summary_ecotype # TA, SEA, SEAc 
+overlap_ecotype# ellipse overlap fraction
+percent_overlap_ecotype # percent ellipse overlap 
+SEAb_modes_ecotype # modes
+SEAb_cred_ecotype # credibilities 
 
-#centroids 
-print(c("Centroid Distance", centroid_distance_fraction))
-
-
-
-#####
-
-png("~/Desktop/TLAP_CSIA_Manuscript/Graphs/siber_plot_ecotype.png", width = 700, height = 700)
+# plot siber 
+png("~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/FIGURES/SIBER/siber_plot_ecotype.png", width = 700, height = 700)
 # Print siber plot 
 palette(c("#e4d2ba", "#724a29"))
 plotSiberObject(siber_ecotype,
@@ -1384,19 +1347,13 @@ plotSiberObject(siber_ecotype,
 )
 dev.off()
 
-# summary stats
-print(summary_ecotype)
-
-# Ellipse overlap 
-print(c("Ellipse overlap", overlap_ecotype))
-print(c("percent overlap", percent_overlap_ecotype))
-
-png("~/Desktop/TLAP_CSIA_Manuscript/Graphs/siber_plot_ecotype_seab.png", width = 400, height = 700)
+# plot SEAb
+png("~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/FIGURES/SIBER/siber_plot_ecotype_seab.png", width = 400, height = 700)
 # SEAb density plot 
 siberDensityPlot(
-  SEAb_ecotype,                                          ####
+  SEAb_ecotype,                                          
   clr = e_clrs, 
-  xticklabels = c("", ""),              ##########
+  xticklabels = c("", ""),            
   xlab = c(""),
   ylab = c(""),
   bty = "L",
@@ -1407,21 +1364,20 @@ siberDensityPlot(
 )
 
 # Step 2: Add points to the existing plot
-points(1:ncol(SEAb_ecotype), summary_ecotype[3,], col = "red", pch = "x", lwd = 2)     ###
+points(1:ncol(SEAb_ecotype), summary_ecotype[3,], col = "red", pch = "x", lwd = 2)     
 dev.off()
 
-print("Modes")
-SEAb_modes_ecotype
+# SIBER BY ECOTYPE - HOST 
 
-print("Credibilities")
-SEAb_cred_ecotype
+# stats
+summary_ecotype_s # TA, SEA, SEAc 
+overlap_ecotype_s # ellipse overlap fraction
+percent_overlap_ecotype_s # percent ellipse overlap 
+SEAb_modes_ecotype_s # modes
+SEAb_cred_ecotype_s # credibilities 
 
-#centroids 
-print(c("Centroid Distance", centroid_distance_ecotype))
-
-#####
-
-png("~/Desktop/TLAP_CSIA_Manuscript/Graphs/siber_plot_ecotype_s.png", width = 700, height = 700)
+# plot SIBER 
+png("~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/FIGURES/SIBER/siber_plot_ecotype_s.png", width = 700, height = 700)
 # Print siber plot 
 palette(c("#e4d2ba", "#724a29"))
 plotSiberObject(siber_ecotype_s,
@@ -1444,19 +1400,13 @@ plotSiberObject(siber_ecotype_s,
 )
 dev.off()
 
-# summary stats
-print(summary_ecotype_s)
-
-# Ellipse overlap 
-print(c("Ellipse overlap", overlap_ecotype_s))
-print(c("percent overlap", percent_overlap_ecotype_s))
-
-png("~/Desktop/TLAP_CSIA_Manuscript/Graphs/siber_plot_ecotype_s_seab.png", width = 400, height = 700)
+# plot SEAb
+png("~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/FIGURES/SIBER/siber_plot_ecotype_s_seab.png", width = 400, height = 700)
 # SEAb density plot 
 siberDensityPlot(
   SEAb_ecotype_s,  
   clr = e_clrs, 
-  xticklabels = c("", ""),              #####
+  xticklabels = c("", ""),              
   xlab = c(""),
   ylab = c(""),
   bty = "L",
@@ -1465,29 +1415,25 @@ siberDensityPlot(
   ylim = c(0, 11), 
   main = ""
 )
-
 # Step 2: Add points to the existing plot
-points(1:ncol(SEAb_ecotype_s), summary_ecotype_s[3,], col = "red", pch = "x", lwd = 2)     ###
+points(1:ncol(SEAb_ecotype_s), summary_ecotype_s[3,], col = "red", pch = "x", lwd = 2)     
 dev.off()
 
-print("Modes")
-SEAb_modes_ecotype_s
+# SIBER BY TREATMENT - HOST 
 
-print("Credibilities")
-SEAb_cred_ecotype_s
+# stats
+summary_treatment # TA, SEA, SEAc 
+  # control vs. deep 
+overlap_treatment_deep # ellipse overlap fraction
+percent_overlap_treatment_deep # percent ellipse overlap 
+  # control vs. shade
+overlap_treatment_shade # ellipse overlap fraction
+percent_overlap_treatment_shade # percent ellipse overlap 
+SEAb_modes_treatment # modes
+SEAb_cred_treatment # credibilities 
 
-#centroids 
-print(c("Centroid Distance", centroid_distance_ecotype_s))
-
-
-#######
-# print PCA
-#graph_pca_treatment
-print("Siber plot")
-
-
-
-png("~/Desktop/TLAP_CSIA_Manuscript/Graphs/siber_plot_treat_host.png", width = 700, height = 700)
+# plot SIBER 
+png("~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/FIGURES/SIBER/siber_plot_treat_host.png", width = 700, height = 700)
 # Print siber plot 
 palette(c("#C0C0E1", "#8A4594", "#210124"))
 plotSiberObject(siber_treatment,
@@ -1510,26 +1456,13 @@ plotSiberObject(siber_treatment,
 )
 dev.off()
 
-# summary stats 
-print("SEA summary stats")
-print(summary_treatment)
-
-# Ellipse overlap 
-print(c("Ellipse overlap", overlap_treatment_deep))
-print(c("percent overlap", percent_overlap_treatment_deep))
-
-print(c("Ellipse overlap", overlap_treatment_shade))
-print(c("percent overlap", percent_overlap_treatment_shade))
-
-#print(c("Ellipse overlap", overlap_treatment_na))
-#print(c("percent overlap", percent_overlap_treatment_na))
-
-png("~/Desktop/TLAP_CSIA_Manuscript/Graphs/siber_plot_treat_host_seab.png", width = 400, height = 700)
+# Plot SEAb
+png("~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/FIGURES/SIBER/siber_plot_treat_host_seab.png", width = 400, height = 700)
 # SEAb density plot 
 siberDensityPlot(
-  SEAb_treatment,                                          ####
+  SEAb_treatment,                                          
   clr = t_clrs, 
-  xticklabels = c("", "", ""),              #####
+  xticklabels = c("", "", ""),              
   xlab = c(""),
   ylab = c("" ),
   bty = "L",
@@ -1538,29 +1471,26 @@ siberDensityPlot(
   ylim = c(2, 13), 
   main = ""
 )
-
 # Step 2: Add points to the existing plot
-points(1:ncol(SEAb_treatment), summary_treatment[3,], col = "red", pch = "x", lwd = 2)     ###
+points(1:ncol(SEAb_treatment), summary_treatment[3,], col = "red", pch = "x", lwd = 2)     
 dev.off()
 
-print("Modes")
-SEAb_modes_treatment
-print("Credibilities" )
-SEAb_cred_treatment
 
-#centroids 
-#print(c("Centroid Distance control vs. deep", centroid_distance_treatment_1))
-#print(c("Centroid Distance control vs. shade", centroid_distance_treatment_2))
-#print(c("Centroid Distance control vs. shade", centroid_distance_treatment_3))
+# SIBER BY TREATMENT - SYMBIONTS
 
-#######
+# stats
+summary_treatment_s # TA, SEA, SEAc 
+# control vs. deep 
+overlap_treatment_deep_s # ellipse overlap fraction
+percent_overlap_treatment_deep_s # percent ellipse overlap 
+# control vs. shade
+overlap_treatment_shade_s # ellipse overlap fraction
+percent_overlap_treatment_shade_s # percent ellipse overlap 
+SEAb_modes_treatment_s # modes
+SEAb_cred_treatment_s # credibilities 
 
-# print PCA
-#graph_pca_treatment
-
-print("Siber plot")
-
-png("~/Desktop/TLAP_CSIA_Manuscript/Graphs/siber_plot_treat_sym.png", width = 700, height = 700)
+# plot SIBER 
+png("~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/FIGURES/SIBER/siber_plot_treat_sym.png", width = 700, height = 700)
 # Print siber plot 
 palette(c( "#C0C0E1", "#8A4594", "#210124"))
 plotSiberObject(siber_treatment_s,
@@ -1584,25 +1514,11 @@ plotSiberObject(siber_treatment_s,
 
 dev.off()
 
-# summary stats 
-print("SEA summary stats")
-print(summary_treatment_s)
-
-# Ellipse overlap 
-print(c("Ellipse overlap", overlap_treatment_deep_s))
-print(c("percent overlap", percent_overlap_treatment_deep_s))
-
-print(c("Ellipse overlap", overlap_treatment_shade_s))
-print(c("percent overlap", percent_overlap_treatment_shade_s))
-
-#print(c("Ellipse overlap", overlap_treatment_na_s))
-#print(c("percent overlap", percent_overlap_treatment_na_s))
-
-
-png("~/Desktop/TLAP_CSIA_Manuscript/Graphs/siber_plot_treat_sym_seab.png", width = 400, height = 700)
+# Plot SEAb
+png("~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/FIGURES/SIBER/siber_plot_treat_sym_seab.png", width = 400, height = 700)
 # SEAb density plot 
 siberDensityPlot(
-  SEAb_treatment_s,                                          ####
+  SEAb_treatment_s,                                          
   clr = t_clrs, 
   xticklabels = c("", "", ""),            
   xlab = c(""),
@@ -1616,23 +1532,9 @@ siberDensityPlot(
 
 # Step 2: Add points to the existing plot
 points(1:ncol(SEAb_treatment_s), summary_treatment_s[3,], col = "red", pch = "x", lwd = 2)  
-
 dev.off()
 
-print("Modes")
-SEAb_modes_treatment_s
-print("Credibilities" )
-SEAb_cred_treatment_s
-
-#centroids 
-#print(c("Centroid Distance control vs. deep", centroid_distance_treatment_1))
-#print(c("Centroid Distance control vs. shade", centroid_distance_treatment_2))
-#print(c("Centroid Distance control vs. shade", centroid_distance_treatment_3))
-
-####### PLOT legend #heins
-
-library(ggnewscale)
-
+# PLOT LEGEND 
 
 legend_data <- data.frame(
   category = factor(
@@ -1702,28 +1604,29 @@ legend_plot <- ggplot() +
 # Display the legend-only plot
 legend_plot
 
-ggsave("TLAP_CSIA_C_legend.jpg", plot=legend_plot, path = "~/Desktop/TLAP_CSIA_Manuscript/Graphs/",width = 14, height = 5)
+ggsave("TLAP_CSIA_C_legend.jpg", plot=legend_plot, path = "FIGURES/SIBER/",width = 14, height = 5)
 
 
-```
+# ISOTOPES: N source mean   -----------------------------------------------------------------
 
-\newpage
-## Trophic Position 
 
-Trophic position (tp) can be calculated using the following equation: 
-  
-  tp = 1+((Glx-Phe-beta)/TDF)
+##### Figure out mean values of source AAs 
 
-where 
+NB_vals <- raw2 %>% 
+  filter(element == "N")%>% 
+  dplyr::select(sample_id, Phe, Lys, Arg, Gly, Ser) %>%
+  pivot_longer(cols = c(Phe, Lys, Arg, Gly, Ser), values_to = "deltN", names_to = "AA") %>%
+  filter(deltN != "NA") %>%
+  group_by(AA) %>%
+  summarise(mean = mean(deltN), sd = sd(deltN))
+# TROPHIC POSITION --------------------------------------------------------
 
-- Glx = the delt15N of Glutamine + Glutamic Acid (Trophic AA)
-- Phe = the delt15N of Phenylalanine (Source AA)
-- TDF = Trophic discrimination factor = 7.6 (because coral is an amonia producer)
-- beta =  Glx-phe of baseline primary producers. = 3.3 (Phytoplankton baseline)
-
-Mean trophic position for the fractions (control only): 
-  
-  ```{r TP_sym, include=FALSE}
+# Trophic position (tp) can be calculated using the following equation:  tp = 1+((Glx-Phe-beta)/TDF)
+# where 
+  # Glx = the delt15N of Glutamine + Glutamic Acid (Trophic AA)
+  # Phe = the delt15N of Phenylalanine (Source AA)
+  # TDF = Trophic discrimination factor = 7.6 (because coral is an amonia producer)
+  # beta =  Glx-phe of baseline primary producers. = 3.3 (Phytoplankton baseline)
 
 # isoloate data we need to calculate TP 
 tp <- raw2 %>% 
@@ -1811,8 +1714,6 @@ tp_symbionts <- ggplot(tp_host, aes(x=sym.cm2, y=trophic_position)) +
   ylim(1.95, 3) +
   xlim(-1000, 1530000)
 
-#ggsave("TLAP_CSIA_tp_sym.jpg", plot=tp_symbionts, path = "~/Desktop/TLAP_CSIA_Manuscript/Graphs/", width = 15, height = 15)
-
 #### SYM 
 
 # TP by fraction 
@@ -1856,8 +1757,6 @@ tp_sym_s <- ggplot(tp_sym, aes(x=sym.cm2, y=trophic_position)) +
   ylim(1.9, 2.9) +
   xlim(-1000, 1530000)
 
-#ggsave("TLAP_CSIA_tp_sym_s.jpg", plot=tp_sym_s, path = "~/Desktop/TLAP_CSIA_Manuscript/Graphs/", width = 15, height = 15)
-
 ## Arrange host graphs 
 
 # designate the y axis label
@@ -1883,21 +1782,9 @@ tp_arrange_all <- grid.arrange(tp_frac, tp_arrange_both, nrow=1, left=yleft, wid
                                ))
 tp_arrange_all
 
-ggsave("TLAP_CSIA_tp_arrange_all.jpg", plot=tp_arrange_all, path = "~/Desktop/TLAP_CSIA_Manuscript/Graphs/", width = 30, height = 25)
+ggsave("TLAP_FIG_7_trophic_position.jpg", plot=tp_arrange_all, path = "FIGURES/", width = 30, height = 25)
 
-##### Figure out mean values of source AAs 
-
-NB_vals <- raw2 %>% 
-  filter(element == "N")%>% 
-  dplyr::select(sample_id, Phe, Lys, Arg, Gly, Ser) %>%
-  pivot_longer(cols = c(Phe, Lys, Arg, Gly, Ser), values_to = "deltN", names_to = "AA") %>%
-  filter(deltN != "NA") %>%
-  group_by(AA) %>%
-  summarise(mean = mean(deltN), sd = sd(deltN))
-
-```
-
-```{r sumV, fig.show="hold"}
+# SUMV --------------------------------------------------------------------
 
 # calculate sum v
 sumV <- raw2 %>% 
@@ -1989,11 +1876,7 @@ sumV_symbionts <- ggplot(sumV_host, aes(x=sym.cm2, y=sum_v)) +
   ylim(1.1, 3.3)+
   xlim(-1000, 1100000)
 
-#ggsave("TLAP_CSIA_tp_sym.jpg", plot=tp_symbionts, path = "~/Desktop/TLAP_CSIA_Manuscript/Graphs/", width = 15, height = 15)
-
 #### SYM 
-
-library(scales)
 
 # TP by fraction 
 sumV_treat_s <- ggplot(sumV_sym, aes(x=treatment, y=sum_v, fill=treatment)) +
@@ -2012,7 +1895,8 @@ sumV_treat_s <- ggplot(sumV_sym, aes(x=treatment, y=sum_v, fill=treatment)) +
     plot.margin=unit(c(0,0,0.5,0),"cm")
   ) +
   scale_x_discrete(labels=c('Control','Shade', 'Deep') ) +
-  stat_compare_means(comparisons = treatment_comparisons_combined, method = "wilcox.test", size=12)  +
+  stat_compare_means(comparisons = treatment_comparisons_combined, method = "wilcox.test", size=12) +
+  #scale_x_discrete(labels=c("APO" = "Aposymbiotic", "SYM" = "Symbiotic")) +
   scale_y_continuous(labels = number_format(accuracy = 0.1), limits = c(1.1, 4.0)) 
 
 sumV_sym_s <- ggplot(sumV_sym, aes(x=sym.cm2, y=sum_v)) +
@@ -2035,8 +1919,6 @@ sumV_sym_s <- ggplot(sumV_sym, aes(x=sym.cm2, y=sum_v)) +
   )+
   ylim(1.1, 4.0) +
   xlim(-1000, 1100000)
-
-#ggsave("TLAP_CSIA_tp_sym_s.jpg", plot=tp_sym_s, path = "~/Desktop/TLAP_CSIA_Manuscript/Graphs/", width = 15, height = 15)
 
 ## Arrange host graphs 
 
@@ -2063,13 +1945,9 @@ sumV_arrange_all <- grid.arrange(sumV_frac, sumV_arrange_both, nrow=1, left=ylef
                                  ))
 sumV_arrange_all
 
-ggsave("TLAP_CSIA_sumV_arrange_all.jpg", plot=sumV_arrange_all, path = "~/Desktop/TLAP_CSIA_Manuscript/Graphs/", width = 30, height = 25)
+ggsave("TLAP_FIG_S2_sumV.jpg", plot=sumV_arrange_all, path = "FIGURES/", width = 30, height = 25)
 
-
-```
-
-```{r phys stats, include=FALSE}
-
+# PHYSIOLOGY + ISOTOPES: statistics --------------------------------------------------
 
 # Add sum v and tp to the big data set
 tp_prep <- tp2 %>%
@@ -2088,6 +1966,8 @@ sumV_prep <- sumV %>%
 tp_sumv <- merge(tp_prep, sumV_prep, all = TRUE)
 
 master2 <- merge(master, tp_sumv,all = TRUE)
+
+# WILCOXON'S TESTS
 
 # prep sepecific ones 
 master_shade <- master2 %>% filter(treatment != "deep")
@@ -2167,9 +2047,9 @@ lm_results <- run_linear_regressions(master2, columns_to_test)
 phys_stats <- merge(wilcox_3, lm_results, by = "metric")
 
 # save 
-write.csv(phys_stats, "~/Desktop/TLAP_CSIA_Manuscript/STATS/TLAP_STATS_phys.csv", row.names = FALSE)
+write.csv(phys_stats, "STATS/TLAP_STATS_phys.csv", row.names = FALSE)
 
-####### MEANS
+# CALCULATE PHYSIOLOGY MEANS 
 
 master_long <- master2 %>%
   pivot_longer(cols = c("sym.cm2", "chla.ug.cm2", "chl_ug.sym", "calice_density", "cre.umol.mgprot", "prot_mg.cm2", "AFDW.mg.cm2", "lipids.mg.cm2","tp_s", "tp_h", "sumV_h", "sumV_s"), names_to = "metric", values_to = "value") %>%
@@ -2191,9 +2071,9 @@ ecotype_means <-master_long %>%
 # merge 
 physiology_means <- merge(phys_means, ecotype_means, all.x = TRUE)
 
-write.csv(physiology_means, "~/Desktop/TLAP_CSIA_Manuscript/STATS/TLAP_STATS_phys_means.csv", row.names = FALSE)
+write.csv(physiology_means, "STATS/TLAP_STATS_phys_means.csv", row.names = FALSE)
 
-### STATS for sym vs. host 
+### STATS FOR SYM VS HOST 
 
 columns_to_test2 <- c("trophic_position", "sum_v")  
 
@@ -2216,11 +2096,11 @@ phys_means2 <- master_long2 %>%
 
 sumv_tp_means <- merge(fraction_results, phys_means2, all = TRUE)
 
-write.csv(sumv_tp_means, "~/Desktop/TLAP_CSIA_Manuscript/STATS/TLAP_STATS_sumv_tp_fractions.csv", row.names = FALSE)
+write.csv(sumv_tp_means, "STATS/TLAP_STATS_sumv_tp_fractions.csv", row.names = FALSE)
 
-``` 
+# FIDELITY ----------------------------------------------------------------
 
-```{r fidelity, fig.show="hold"}
+# Calculate physiological fidelity to original ecotype 
 
 fid <- master %>%
   dplyr::select(sample_id, Apo_Sym, treatment, full_treatment, new, sym.cm2, chla.ug.cm2, chl_ug.sym, calice_density, cre.umol.mgprot,
@@ -2250,7 +2130,7 @@ fidelity_initial <- fid %>%
   ) %>%
   mutate(across(where(is.numeric), ~ round(.x, 4))) 
 
-write.csv(fidelity_initial, file = "~/Desktop/TLAP_CSIA_Manuscript/Graphs/TLAP_CSIA_fidelity.csv")
+write.csv(fidelity_initial, file = "STATS/TLAP_CSIA_fidelity.csv")
 
 fidelity_final <- fid %>%
   group_by(metric) %>%
@@ -2259,7 +2139,4 @@ fidelity_final <- fid %>%
     final_control = t_test_p(.data$control[.data$new == "APO"],.data$control[.data$new == "SYM"] ),
     final_deep = t_test_p(.data$deep[.data$new == "APO"],.data$deep[.data$new == "SYM"]) ) %>%
   mutate(across(where(is.numeric), ~ round(.x, 5))) 
-
-
-```
 
