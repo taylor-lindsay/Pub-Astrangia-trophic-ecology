@@ -2110,27 +2110,30 @@ fid <- master %>%
   filter(vals != "NA") %>%
   dplyr::select(sample_id, Apo_Sym, treatment, full_treatment, new, metric, vals) %>%
   pivot_wider(names_from = treatment, values_from = vals)
-
+ 
 t_test_p <- function(x, y) {
   result <- tryCatch({
-    wilcox.test(x, y)$p.value
+    test <- wilcox.test(x, y)  # Perform Wilcoxon test
+    data.frame(p.value = test$p.value, W = as.numeric(test$statistic))  # Return as data frame
   }, error = function(e) {
-    # If an error occurs (e.g., not enough samples), return NA
-    return(NA)
+    # If an error occurs, return NA for both columns
+    data.frame(p.value = NA, W = NA)
   })
   return(result)
 }
+
+
 
 fidelity_initial <- fid %>%
   group_by(metric) %>%
   summarise(
     initial_control = t_test_p(.data$control[Apo_Sym == "APO"], .data$control[Apo_Sym == "SYM"]),
     initial_shade = t_test_p(.data$shade[Apo_Sym == "APO"], .data$shade[Apo_Sym == "SYM"]),
-    initial_deep = t_test_p(.data$deep[Apo_Sym == "APO"], .data$deep[Apo_Sym == "SYM"])
+    initial_deep = t_test_p (.data$deep[Apo_Sym == "APO"], .data$deep[Apo_Sym == "SYM"])
   ) %>%
   mutate(across(where(is.numeric), ~ round(.x, 4))) 
 
-write.csv(fidelity_initial, file = "STATS/TLAP_CSIA_fidelity.csv")
+write.csv(fidelity_initial, file = "STATS/TLAP_STATS_fidelity.csv")
 
 fidelity_final <- fid %>%
   group_by(metric) %>%
