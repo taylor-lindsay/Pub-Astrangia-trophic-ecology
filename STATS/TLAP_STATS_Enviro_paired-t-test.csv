@@ -1,0 +1,5 @@
+"Comparison","t","df","p"
+"Temp Control vs. Shade",70.1710589122041,4602,"0.000e+00"
+"Temp Control vs. Deep",46.855194040934,4602,"0.000e+00"
+"Light Control vs. Shade",33.3309869411127,4602,"2.134e-218"
+"Light Control vs. Deep",32.9209843686024,4602,"1.248e-213"

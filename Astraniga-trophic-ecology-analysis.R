@@ -29,14 +29,10 @@ library(rjags)        #bayesian mixing models
 library(cowplot)      #arranging plots 
 library(vegan)        #MANOVAs
 
+# set working directory 
 setwd('~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/')
 
-# Data  -------------------------------------------------------------------
-
-# read & process Phys data 
-master <- read.csv('Data/TLAP_ALL_Results.csv') 
-
-# Define groups and settings 
+### Set up comparisons and parameters for later graphs 
 
 # define comparisons for boxplot t-tests 
 treatment_comparisons <- list( c("apo_deep","sym_deep"), c("apo_control","sym_control"), c("apo_shade","sym_shade"), c("apo_control","apo_shade"), c("apo_control","apo_deep"), c("sym_control","sym_shade"), c("sym_control","sym_deep"))
@@ -57,13 +53,10 @@ a_s_list <- list(c('APO','SYM'))
 pj <- position_jitterdodge(jitter.width=0.2, seed=9,
                            jitter.height = 0)
 
-# remove NAs 
-
-
-# Environmental analysis --------------------------------------------------
+# ENVIRONMENTAL: data prep--------------------------------------------------
 
 # Master data set 
-enviro <- read.csv('Data/Environmental_Data_Merged(C).csv') %>%
+enviro <- read.csv('DATA/TLAP_results_enviro(C).csv') %>%
   dplyr::select(!X)
 
 # make it datetime format 
@@ -89,19 +82,20 @@ enviro_summary <- long %>%
   group_by(variable, treatment) %>%
   summarise(mean = mean(value), sd = sd(value))
 
-write.csv(enviro_summary, "~/Desktop/TLAP_CSIA_Manuscript/STATS/TLAP_STATS_Enviro_means.csv", row.names = FALSE)
+# save summary file 
+write.csv(enviro_summary, "STATS/TLAP_STATS_Enviro_means.csv", row.names = FALSE)
 
+# reorganize data and get mean daily values 
 long_temp <- long %>% filter(variable == "temp")
 long_temp$datetime <- as.Date(long_temp$datetime)
 daily_temp <-long_temp %>% group_by(datetime,treatment) %>%
   summarize(mean_temp = mean(value))
-
 long_light <- long %>% filter(variable == "light")
 long_light$datetime <- as.Date(long_light$datetime)
 daily_light <-long_light %>% group_by(datetime,treatment) %>%
   summarize(mean_light = mean(value))
 
-### Paired T Tests
+# ENVIRONMENTAL: Paired t-tests (Table S1) --------------------------------
 
 # write function 
 perform_paired_t_test <- function(group1, group2, group_label) {
@@ -125,16 +119,11 @@ test_results_list <- list(
 # Combine all results into one data frame
 all_enviro <- do.call(rbind, test_results_list)
 
-write.csv(all_enviro, "~/Desktop/TLAP_CSIA_Manuscript/STATS/TLAP_STATS_Enviro_paired-t-test.csv", row.names = FALSE)
+write.csv(all_enviro, "STATS/TLAP_STATS_Enviro_paired-t-test.csv", row.names = FALSE)
 
-```
+# ENVIRONMENTAL: Graph temp & light (Fig 2------------------------------------
 
-```{r enviro graphs, fig.show="hold"}
-
-# graphs of just functional data set, daily data ------------------------------------
-
-#daily_temp_full <- daily_temp %>%filter(datetime <= "2023-08-08")
-
+# Temperature plot
 daily_temp_plot <- ggplot(daily_temp, aes(x=datetime,y=mean_temp, color=treatment)) +
   geom_line(size=1.5) +
   labs(y= "Mean Daily Temperature (˚C)", x = "", color="Treatment") +
@@ -144,6 +133,7 @@ daily_temp_plot <- ggplot(daily_temp, aes(x=datetime,y=mean_temp, color=treatmen
         axis.text.x = element_blank()) +
   scale_color_manual(values = c("#C0C0E1", "#210124", "#8A4594"))
 
+# Light plot 
 daily_light_plot <- ggplot(daily_light, aes(x=datetime,y=mean_light, color=treatment)) +
   geom_line(size=1.5) +
   labs(y= "Mean Daily Light (lum)", x = "Date", color="Treatment")  +
@@ -163,24 +153,14 @@ enviro_arrange <- grid.arrange(temp1, light1, nrow=2,
                                  textGrob("A", x = 0.08, y = 97, just = "left", gp = gpar(fontsize = 18, fontface = "bold")),
                                  textGrob("B", x = 0.1, y = 47, just = "right", gp = gpar(fontsize = 18, fontface = "bold"))))
 
-
 #save graphs 
-ggsave("TLAP_enviro.jpg", plot = enviro_arrange, path = '~/Desktop/TLAP_CSIA_Manuscript/Graphs/', width = 10, height = 10)
+ggsave("TLAP_FIG_2_Enviro.jpg", plot = enviro_arrange, path = 'FIGURES/', width = 10, height = 10)
 
-#ggsave("AP23_daily_temp_plot.jpg", plot = daily_temp_plot, path = '~/Desktop/TLAP_CSIA_Manuscript/Graphs/', width = 10, height = 6)
-#ggsave("AP23_daily_light_plot.jpg", plot = daily_light_plot, path = '~/Desktop/TLAP_CSIA_Manuscript/Graphs/', width = 10, height = 6)
-```
-*Figure 2. Environmental conditions in each of the three treatments measured using Onset Hobo loggers shows A) Mean daily temperature and B) Mean daily Light. Paired t-tests show that control is significantly different from each of the experimental treatments for both light and temperature (p<0.0001).*
-  
-  \newpage
-## Survival
 
-Survival was tracked weekly as "alive" or "dead".
-
-```{r 1.survival graph, fig.show= "hold"}
+# SURVIVAL: data prep & Graph (Fig 3) --------------------------------------------------------------
 
 # load data and filter out only dead and alive individuals 
-raw_s <- read.csv('~/Desktop/GITHUB/TL_Astrangia/TLAP_Raw_Data/AP23_Raw_all_survival_01.csv') %>%
+raw_s <- read.csv('DATA/TLAP_results_survival.csv') %>%
   filter(survival_10.10.23 == 0 | survival_10.10.23 == 1) %>%
   filter(end_status != "Missing")
 
@@ -234,9 +214,9 @@ survival_arrange <- grid.arrange(surv1, surv2, nrow=1,
                                    textGrob("B", x = 0.57, y = 78, just = "right", gp = gpar(fontsize = 18, fontface = "bold"))))
 
 #save graphs 
-ggsave("TLAP_surival.jpg", plot = survival_arrange , path = '~/Desktop/TLAP_CSIA_Manuscript/Graphs/', width = 12, height = 8)
+ggsave("TLAP_FIG_3_surival.jpg", plot = survival_arrange , path = 'FIGURES/', width = 12, height = 8)
 
-## Stats
+# SURVIVAL: Statistics ----------------------------------------------------
 
 # Define a function to perform a log-rank test and extract the results
 perform_log_rank_test <- function(surv_object, grouping_variable, data) {
@@ -269,7 +249,7 @@ all_log_rank_results <- do.call(rbind, lapply(tests, function(test) {
 }))
 
 # Save 
-write.csv(all_log_rank_results, "~/Desktop/TLAP_CSIA_Manuscript/STATS/TLAP_STATS_survival_kaplan-meier.csv", row.names = FALSE)
+write.csv(all_log_rank_results, "STATS/TLAP_STATS_survival_kaplan-meier.csv", row.names = FALSE)
 
 # How many from each group survived
 
@@ -318,20 +298,16 @@ count_results <- count_results %>%
   mutate(total = (Alive + Dead))
 
 # Save 
-write.csv(count_results, "~/Desktop/TLAP_CSIA_Manuscript/STATS/TLAP_STATS_survival_counts.csv", row.names = FALSE)
+write.csv(count_results, "STATS/TLAP_STATS_survival_counts.csv", row.names = FALSE)
 
-```
 
-### Track ecotype switches 
+# ECOTYPE SWITCHING: analysis & graph -------------------------------------
 
-I wanted to see how many of the colonies "switched" ecotypes. For this, we have the initial ecotype determined from visual inspections, and the ending symbiont count. In our a priori study, we found that a threshold of 5x10^5 is about where sym and apo differ. In the literature (Sharp et al. 2017) people have used 1x10^6. These numbers are similar in regards to symbiont variation, but because we are using colonies from the same depth and site as in our a priori, I will use 5x10^5. 
-
-```{r sankey individual, fig.show= "hold"}
-
-# get stanky with it 
+# create final ecotype categories
 master <- master %>% 
   mutate(new = if_else(sym.cm2 > 500000, "SYM", "APO"))
 
+# sankey plot 
 sankey_data <- master %>%
   filter(!is.na(sym.cm2)) %>%
   mutate(full = paste0(Apo_Sym,"_",new)) %>%
@@ -518,11 +494,14 @@ all <- grid.arrange(sankey_control, sankey_shade, sankey_deep, nrow=3,
                     ))
 
 ggsave("sankey_sym_switch.jpg", all, path = '~/Desktop/TLAP_CSIA_Manuscript/Graphs/', height=10, width = 12)
-``` 
 
-*Sankey graph shows approximately equal switching between Apo and Sym in the control, most shaded colonies switched to Apo, and 100% of colonies were Apo in deep at the end of the experiment.*
-  
-  ```{r phys graphs, include=FALSE}
+
+# PHYSIOLOGY:  ------------------------------------------------------------
+
+# read phys data 
+master <- read.csv('DATA/TLAP_results_meta_phys.csv') 
+
+# create new columns 
 master <- master %>%
   mutate(log_chl_sym = log(chl_ug.sym)) %>%
   mutate(log_chl_sym = ifelse(is.infinite(log_chl_sym), NA, log_chl_sym))

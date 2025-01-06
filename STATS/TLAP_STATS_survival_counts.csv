@@ -1,0 +1,7 @@
+"Category","Alive","Dead","total"
+"All Data",178,8,186
+"treatment == 'control'",59,3,62
+"treatment == 'shade'",61,3,64
+"treatment == 'deep'",58,2,60
+"apo_sym == 'APO'",83,8,91
+"apo_sym == 'SYM'",92,0,92
