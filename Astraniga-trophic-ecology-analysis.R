@@ -1080,6 +1080,13 @@ C_pca_ecotype_s <- prcomp(data_ecotype_s[,5:10], scale. = TRUE, center = TRUE)
 C_pca_treatment <- prcomp(data_treatment[,5:10], scale. = TRUE, center = TRUE)
 C_pca_treatment_s <- prcomp(data_treatment_s[,5:10], scale. = TRUE, center = TRUE)
 
+# extract % variance explained by pc1 and 2
+summary(C_pca_fraction) # x = 0.4383, y = 0.2484
+summary(C_pca_ecotype) # x = 0.4768, y = 0.2266
+summary(C_pca_ecotype_s) # x = 0.4661, y = 0.2159
+summary(C_pca_treatment) # x = 0.4768, y = 0.2266
+summary(C_pca_treatment_s) # x = 0.4661, y = 0.2159
+
 # save PCA data 
 pca_data_fraction <-data.frame(C_pca_fraction$x, fraction=data_fraction$fraction)
 pca_data_ecotype <-data.frame(C_pca_ecotype$x, new=data_ecotype$new)
@@ -1272,6 +1279,7 @@ SEAb_cred_fraction # credibilities
 
 #plot siber 
 png("~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/FIGURES/SIBER/siber_plot_fraction.png", width = 700, height = 700)
+par(mar = c(5, 5, 2, 2))
 # Print siber plot 
 palette(c("#353535","#1b9e29"))
 plotSiberObject(siber_fraction,
@@ -1282,8 +1290,8 @@ plotSiberObject(siber_fraction,
                   group.hulls.args = group.hulls.args, # group hull data 
                   bty = "L", # axes lines
                   iso.order = c(1,2),
-                  xlab = "",
-                  ylab = "", 
+                  xlab = "PC1 (43.83%)",
+                  ylab = "PC2 (24.84%)", 
                   cex.lab = 1.5,  # Axis label font size
                   cex.axis = 2,  # Axis tick font size
                   cex.main = 1.8, 
@@ -1325,6 +1333,7 @@ SEAb_cred_ecotype # credibilities
 
 # plot siber 
 png("~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/FIGURES/SIBER/siber_plot_ecotype.png", width = 700, height = 700)
+par(mar = c(5, 5, 2, 2))
 # Print siber plot 
 palette(c("#e4d2ba", "#724a29"))
 plotSiberObject(siber_ecotype,
@@ -1335,8 +1344,8 @@ plotSiberObject(siber_ecotype,
                 group.hulls.args = group.hulls.args, # group hull data 
                 bty = "L", # axes lines
                 iso.order = c(1,2),
-                xlab = "",
-                ylab = "", 
+                xlab = "PC1 (47.68%)",
+                ylab = "PC2 (22.66%)", 
                 cex = 0.11, # change size of points 
                 cex.lab = 1.5,  # Axis label font size
                 cex.axis = 2,  # Axis tick font size
@@ -1378,6 +1387,7 @@ SEAb_cred_ecotype_s # credibilities
 
 # plot SIBER 
 png("~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/FIGURES/SIBER/siber_plot_ecotype_s.png", width = 700, height = 700)
+par(mar = c(5, 5, 2, 2))
 # Print siber plot 
 palette(c("#e4d2ba", "#724a29"))
 plotSiberObject(siber_ecotype_s,
@@ -1388,8 +1398,8 @@ plotSiberObject(siber_ecotype_s,
                 group.hulls.args = group.hulls.args, # group hull data 
                 bty = "L", # axes lines
                 iso.order = c(1,2),
-                xlab = "",
-                ylab = "", 
+                xlab = "PC1 (46.61%)",
+                ylab = "PC2 (21.59%)", 
                 cex = 0.11, # change size of points 
                 cex.lab = 1.5,  # Axis label font size
                 cex.axis = 2,  # Axis tick font size
@@ -1434,6 +1444,7 @@ SEAb_cred_treatment # credibilities
 
 # plot SIBER 
 png("~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/FIGURES/SIBER/siber_plot_treat_host.png", width = 700, height = 700)
+par(mar = c(5, 5, 2, 2))
 # Print siber plot 
 palette(c("#C0C0E1", "#8A4594", "#210124"))
 plotSiberObject(siber_treatment,
@@ -1444,8 +1455,8 @@ plotSiberObject(siber_treatment,
                 group.hulls.args = group.hulls.args, # group hull data 
                 bty = "L", # axes lines
                 iso.order = c(1,2),
-                xlab = "",
-                ylab = "", 
+                xlab = "PC1 (47.68%)",
+                ylab = "PC2 (22.66%)", 
                 cex = 0.11, # change size of points 
                 cex.lab = 1.5,  # Axis label font size
                 cex.axis = 2,  # Axis tick font size
@@ -1491,25 +1502,26 @@ SEAb_cred_treatment_s # credibilities
 
 # plot SIBER 
 png("~/Desktop/GITHUB/Pub-Astrangia-trophic-ecology/FIGURES/SIBER/siber_plot_treat_sym.png", width = 700, height = 700)
-# Print siber plot 
-palette(c( "#C0C0E1", "#8A4594", "#210124"))
+par(mar = c(5, 5, 2, 2))
+# Print SIBER plot
+palette(c("#C0C0E1", "#8A4594", "#210124"))
 plotSiberObject(siber_treatment_s,
-                ax.pad = 2,  #determines the padding applied around the extremes of the data.
-                ellipses = T, #Ellipses are drawn for each group independently with 
-                group.ellipses.args = group.ellipses.args, # ellipse data 
-                group.hulls = T, #makes hulls for each group (polygon around all ) 
-                group.hulls.args = group.hulls.args, # group hull data 
-                bty = "L", # axes lines
-                iso.order = c(1,2),
-                xlab = "",
-                ylab = "", 
-                cex = 0.11, # change size of points 
-                cex.lab = 1.5,  # Axis label font size
-                cex.axis = 2,  # Axis tick font size
-                cex.main = 1.8, 
-                points.order = (19), # change point type
-                x.limits = c(-3,3.5),
-                y.limits = c(-3,3)
+                ax.pad = 2,
+                ellipses = TRUE,
+                group.ellipses.args = group.ellipses.args,
+                group.hulls = TRUE,
+                group.hulls.args = group.hulls.args,
+                bty = "L",
+                iso.order = c(1, 2),
+                xlab = "PC1 (46.61%)",
+                ylab = "PC2 (21.59%)",
+                cex = 0.11,
+                cex.lab = 1.5,
+                cex.axis = 2,
+                cex.main = 1.8,
+                points.order = 19,
+                x.limits = c(-3, 3.5),
+                y.limits = c(-3, 3)
 )
 
 dev.off()
@@ -1606,7 +1618,6 @@ legend_plot
 
 ggsave("TLAP_CSIA_C_legend.jpg", plot=legend_plot, path = "FIGURES/SIBER/",width = 14, height = 5)
 
-
 # ISOTOPES: N source mean   -----------------------------------------------------------------
 
 
@@ -1691,7 +1702,7 @@ tp_treat <- ggplot(tp_host, aes(x=treatment, y=trophic_position, fill=treatment)
   )+
   stat_compare_means(comparisons = treatment_comparisons_combined, method = "wilcox.test", size=12) +
   scale_x_discrete(labels=c("APO" = "Aposymbiotic", "SYM" = "Symbiotic")) +
-  ylim(1.95, 3)
+  scale_y_continuous(limits = c(1.95, 3), labels = number_format(accuracy = 0.01))
 
 tp_symbionts <- ggplot(tp_host, aes(x=sym.cm2, y=trophic_position)) +
   #DATA 
@@ -1734,7 +1745,8 @@ tp_treat_s <- ggplot(tp_sym, aes(x=treatment, y=trophic_position, fill=treatment
   ) +
   scale_x_discrete(labels=c('Control','Shade', 'Deep') ) +
   stat_compare_means(comparisons = treatment_comparisons_combined, method = "wilcox.test", size=12) + 
-  ylim(1.9, 2.9)
+  scale_y_continuous(limits = c(1.9, 2.9), labels = number_format(accuracy = 0.01))
+
 
 tp_sym_s <- ggplot(tp_sym, aes(x=sym.cm2, y=trophic_position)) +
   #DATA 
