@@ -504,12 +504,43 @@ all <- grid.arrange(sankey_control, sankey_shade, sankey_deep, nrow=3,
 ggsave("TLAP_FIG_4_ecotype_switch.jpg", all, path = 'FIGURES/', height=10, width = 12)
 
 
-# PHYSIOLOGY:  ------------------------------------------------------------
+# PHYSIOLOGY: graphing (Fig 5) ------------------------------------------------------------
 
 # create new columns 
 master <- master %>%
   mutate(log_chl_sym = log(chl_ug.sym)) %>%
   mutate(log_chl_sym = ifelse(is.infinite(log_chl_sym), NA, log_chl_sym))
+
+# pull legends
+
+# Graph sym x treatment 
+legend1 <- ggplot(master, aes(x=factor(treatment, level=x_order_combined), y=sym.cm2, fill=factor(treatment, level=measurement_order))) + 
+  geom_boxplot() + 
+  theme_bw() +
+  scale_fill_manual(values = c("#C0C0E1", "#9e7bb5", "#3e2f84"),
+                    labels = c("Control", "Shade", "Deep")) + 
+  labs(x = "", y = "",  fill = "Treatment")  + 
+  theme(legend.direction = "horizontal",
+        text = element_text( size=50),
+        legend.title = element_text(face = "bold"),
+        legend.key.width = unit(2.5, "cm"), 
+        legend.key.height = unit(2.5, "cm")
+        ) 
+legend1
+
+# Graph Chl x ecotype 
+legend2 <- ggplot(master,aes(x=sym.cm2, y=chla.ug.cm2)) + 
+  geom_point( aes(color=Apo_Sym), size=8) +
+  theme_bw() +
+  theme(legend.direction = "horizontal",
+        legend.title = element_text(face = "bold"),
+        text = element_text( size=50)) + 
+  #specifics 
+  scale_color_manual(values = c("#e4d2ba", "#724a29"), labels = c("Aposymbiotic", "Symbiotic"))+ 
+  labs(x = "", y = "", color= "Initial Ecotype") 
+
+legend1_ex  <- cowplot::get_legend(legend1)
+legend2_ex  <- get_legend(legend2)
 
 # Graph sym x treatment 
 AP23_sym_treat <- ggplot(master, aes(x=factor(treatment, level=x_order_combined), y=sym.cm2, fill=factor(treatment, level=measurement_order))) + 
@@ -534,7 +565,9 @@ AP23_sym_treat <- ggplot(master, aes(x=factor(treatment, level=x_order_combined)
     limits = c(0, 1900000),  # Set y-axis limits
     labels = function(x) {scales::label_scientific()(signif(x, 1))} ) + 
   #labs(x = "", y = expression(atop("Symbiont Density", paste("(cells/cm"^2, ")")))) + 
-  labs(x = "", y = bquote("Symbiont Density (cells/" ~ cm^2 ~ ")")) 
+  labs(x = "", y = bquote("Symbiont Density (cells/" ~ cm^2 ~ ")"),  fill = "Treatment") 
+
+AP23_sym_treat
 
 # Graph Sym x ecotype 
 AP23_sym_ecotype <- ggplot(master,aes(x=Apo_Sym, y=sym.cm2, fill=Apo_Sym)) + 
@@ -872,6 +905,8 @@ AP23_lip_ecotype <- ggplot(master,aes(x=sym.cm2, y=lipids.mg.cm2)) +
   ylim(0,0.003)
 
 # save the treatment and ecotype plots into objects 
+legends <- plot_grid(legend1_ex, legend2_ex,
+                      ncol = 2)
 g_treat1 <- plot_grid(AP23_sym_treat, AP23_chl_treat,AP23_chl_sym_treat, AP23_cal_treat, 
                       ncol = 1, align = "v", 
                       labels = c("A", "E", "I", "M"),  label_size = 35, label_x = 0.36, label_y = 0.99)
@@ -888,13 +923,11 @@ g_eco2 <-plot_grid(AP23_AO_ecotype, AP23_prot_ecotype,AP23_AFDW_ecotype,AP23_lip
 # combine 
 all_metab <-plot_grid(g_treat1, g_eco1, g_treat2, g_eco2, 
                       ncol = 4, rel_widths = c(1, 1.3, 1, 1.3))
+all_metab2 <-plot_grid(all_metab,legends,
+                      ncol = 1, rel_heights = c(6, 0.3))
 
 #save 2x6 graphs 
-ggsave("TLAP_Fig_5_phys.jpg", plot = all_metab, path = 'FIGURES/', width = 30, height = 40)
-
-
-
-
+ggsave("TLAP_Fig_5_phys.jpg", plot = all_metab2, path = 'FIGURES/', width = 30, height = 40)
 
 
 # ISOTOPES: data & basic plots (Fig S1) ----------------------------------------------------------------
@@ -1292,7 +1325,7 @@ plotSiberObject(siber_fraction,
                   iso.order = c(1,2),
                   xlab = "PC1 (43.83%)",
                   ylab = "PC2 (24.84%)", 
-                  cex.lab = 1.5,  # Axis label font size
+                  cex.lab = 2,  # Axis label font size
                   cex.axis = 2,  # Axis tick font size
                   cex.main = 1.8, 
                   #cex = 10,  # change size of points 
@@ -1347,7 +1380,7 @@ plotSiberObject(siber_ecotype,
                 xlab = "PC1 (47.68%)",
                 ylab = "PC2 (22.66%)", 
                 cex = 0.11, # change size of points 
-                cex.lab = 1.5,  # Axis label font size
+                cex.lab = 2,  # Axis label font size
                 cex.axis = 2,  # Axis tick font size
                 cex.main = 1.8,
                 points.order = (19), # change point type
@@ -1401,7 +1434,7 @@ plotSiberObject(siber_ecotype_s,
                 xlab = "PC1 (46.61%)",
                 ylab = "PC2 (21.59%)", 
                 cex = 0.11, # change size of points 
-                cex.lab = 1.5,  # Axis label font size
+                cex.lab = 2,  # Axis label font size
                 cex.axis = 2,  # Axis tick font size
                 cex.main = 1.8,
                 points.order = (19), # change point type
@@ -1458,7 +1491,7 @@ plotSiberObject(siber_treatment,
                 xlab = "PC1 (47.68%)",
                 ylab = "PC2 (22.66%)", 
                 cex = 0.11, # change size of points 
-                cex.lab = 1.5,  # Axis label font size
+                cex.lab = 2,  # Axis label font size
                 cex.axis = 2,  # Axis tick font size
                 cex.main = 1.8,
                 points.order = (19), # change point type
@@ -1516,7 +1549,7 @@ plotSiberObject(siber_treatment_s,
                 xlab = "PC1 (46.61%)",
                 ylab = "PC2 (21.59%)",
                 cex = 0.11,
-                cex.lab = 1.5,
+                cex.lab = 2,
                 cex.axis = 2,
                 cex.main = 1.8,
                 points.order = 19,
