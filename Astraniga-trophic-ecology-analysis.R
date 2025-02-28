@@ -138,7 +138,7 @@ daily_temp_plot <- ggplot(daily_temp, aes(x=datetime,y=mean_temp, color=treatmen
 # Light plot 
 daily_light_plot <- ggplot(daily_light, aes(x=datetime,y=mean_light, color=treatment)) +
   geom_line(size=1.5) +
-  labs(y= "Mean Daily Light (lum)", x = "Date", color="Treatment")  +
+  labs(y = expression("Mean Daily Light (lum ft"^{-2}*")"), x = "Date", color="Treatment")  +
   theme_bw() + 
   theme(text = element_text( size=20), legend.position = "none") +
   scale_color_manual(values = c("#C0C0E1", "#210124", "#8A4594"))
@@ -305,7 +305,6 @@ write.csv(count_results, "STATS/TLAP_STATS_survival_counts.csv", row.names = FAL
 
 # ECOTYPE SWITCHING: analysis & graph (Fig 4) -------------------------------------
 
-
 # read phys data 
 master <- read.csv('DATA/TLAP_results_meta_phys.csv') %>%
   filter(full_treatment != "NA")
@@ -320,6 +319,12 @@ sankey_data <- master %>%
   mutate(full = paste0(Apo_Sym,"_",new)) %>%
   mutate(full_start = paste0(treatment, "_", Apo_Sym)) %>%
   mutate(full_end = paste0(treatment, "_", new)) 
+
+# Count switches 
+
+switching_count <- sankey_data %>%
+  group_by(full_start, full_end) %>%
+  summarise(count = n())
 
 ### one at a time 
 
@@ -494,7 +499,7 @@ all <- grid.arrange(sankey_control, sankey_shade, sankey_deep, nrow=3,
                       textGrob("69%", x = .66, y = 74.5, just = "right", gp = gpar(fontsize = 16)),
                       
                       textGrob("23%", x = .66, y = 63, just = "right", gp = gpar(fontsize = 16)),
-                      textGrob("78%", x = .66, y = 53, just = "right", gp = gpar(fontsize = 16)),
+                      textGrob("77%", x = .66, y = 53, just = "right", gp = gpar(fontsize = 16)),
                       textGrob("100%", x = .66, y = 43, just = "right", gp = gpar(fontsize = 16)),
                       
                       textGrob("100%", x = .66, y = 23, just = "right", gp = gpar(fontsize = 16)),
@@ -986,7 +991,7 @@ c_boxplot_frac <- ggplot(c_long) +
   )
 #c_boxplot_frac
 
-custom_n_colors <- c("Gly" = "white", "Ser"= "white","Asx"= "dimgray", "Glx"= "dimgray", "Pro"= "dimgray", "Ala"= "dimgray", "Thr" = "gray", "Lys"= "white", "Ile"= "dimgray", "Met"= "white", "Val"= "dimgray", "Phe"= "white", "Leu"= "dimgray", "Arg" = "white")
+custom_n_colors <- c("Gly" = "gray", "Ser"="gray","Asx"= "dimgray", "Glx"= "dimgray", "Pro"= "dimgray", "Ala"= "dimgray", "Thr" = "gray", "Lys"= "white", "Ile"= "dimgray", "Met"= "white", "Val"= "dimgray", "Phe"= "white", "Leu"= "dimgray", "Arg" = "white")
 
 # N BASIC GGPLOT 
 N_boxplot_frac <- ggplot(n_long) +
@@ -1021,26 +1026,26 @@ ggsave("TLAP_FIG_S1_Isotopes.jpg", plot=supp_arrange, path = "FIGURES/",width = 
 # SOURCE AAs x Fraction 
 n_source_frac <- raw2 %>% 
   filter(element == "N") %>%
-  select("fraction", "Gly", "Lys", "Phe", "Ser")
-matrix1<- as.matrix(n_source_frac[,2:5]) # response variables
+  select("fraction", "Lys", "Phe")
+matrix1<- as.matrix(n_source_frac[,2:3]) # response variables
 manova1<-manova(matrix1~as.factor(fraction), data=n_source_frac)
-x <- summary(manova1) # p = < 0.0001
+summary(manova1) # p = < 0.0001
 
 # SOURCE AAs x Ecotype 
 n_source_ecotype <- raw2 %>% 
   filter(element == "N") %>%
-  select("Apo_Sym", "Gly", "Lys", "Phe", "Ser")
-matrix2<- as.matrix(n_source_ecotype[,2:5]) # response variables
+  select("Apo_Sym", "Lys", "Phe")
+matrix2<- as.matrix(n_source_ecotype[,2:3]) # response variables
 manova2<-manova(matrix2~as.factor(Apo_Sym), data=n_source_ecotype)
-summary(manova2) # p = 0.16
+summary(manova2) # p = 0.45
 
 # SOURCE AAs x treatment 
 n_source_treat <- raw2 %>% 
   filter(element == "N") %>%
-  select("treatment", "Gly", "Lys", "Phe", "Ser")
-matrix3<- as.matrix(n_source_treat[,2:5]) # response variables
+  select("treatment", "Lys", "Phe")
+matrix3<- as.matrix(n_source_treat[,2:3]) # response variables
 manova3<-manova(matrix3~as.factor(treatment), data=n_source_treat)
-summary(manova3) # p = 0.11
+summary(manova3) # p = 0.507
 
 # TROPHIC AAs x fraction
 n_trophic_frac <- raw2 %>% 
@@ -1065,7 +1070,6 @@ n_trophic_ecotype <- raw2 %>%
 matrix6<- as.matrix(n_trophic_ecotype[,2:5]) # response variables
 manova6<-manova(matrix6~as.factor(Apo_Sym), data=n_trophic_ecotype)
 summary(manova6) # p = 0.445
-
 
 # ISOTOPES: SIBER analysis ---------------------------------------------------------
 
@@ -1653,16 +1657,16 @@ ggsave("TLAP_CSIA_C_legend.jpg", plot=legend_plot, path = "FIGURES/SIBER/",width
 
 # ISOTOPES: N source mean   -----------------------------------------------------------------
 
-
 ##### Figure out mean values of source AAs 
 
 NB_vals <- raw2 %>% 
   filter(element == "N")%>% 
-  dplyr::select(sample_id, Phe, Lys, Arg, Gly, Ser) %>%
-  pivot_longer(cols = c(Phe, Lys, Arg, Gly, Ser), values_to = "deltN", names_to = "AA") %>%
+  dplyr::select(sample_id, fraction, Phe, Lys) %>%
+  pivot_longer(cols = c(Phe, Lys), values_to = "deltN", names_to = "AA") %>%
   filter(deltN != "NA") %>%
-  group_by(AA) %>%
+  group_by(AA, fraction) %>%
   summarise(mean = mean(deltN), sd = sd(deltN))
+
 # TROPHIC POSITION --------------------------------------------------------
 
 # Trophic position (tp) can be calculated using the following equation:  tp = 1+((Glx-Phe-beta)/TDF)
@@ -1990,7 +1994,7 @@ sumV_arrange_all <- grid.arrange(sumV_frac, sumV_arrange_both, nrow=1, left=ylef
                                  ))
 sumV_arrange_all
 
-ggsave("TLAP_FIG_S2_sumV.jpg", plot=sumV_arrange_all, path = "FIGURES/", width = 30, height = 25)
+ggsave("TLAP_FIG_8_sumV.jpg", plot=sumV_arrange_all, path = "FIGURES/", width = 30, height = 25)
 
 # PHYSIOLOGY + ISOTOPES: statistics --------------------------------------------------
 
