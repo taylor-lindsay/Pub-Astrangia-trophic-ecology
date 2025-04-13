@@ -125,6 +125,9 @@ write.csv(all_enviro, "STATS/TLAP_STATS_Enviro_paired-t-test.csv", row.names = F
 
 # ENVIRONMENTAL: Graph temp & light (Fig 2------------------------------------
 
+daily_temp$treatment <- factor(daily_temp$treatment, levels = c("Control", "Shade", "Deep"))
+daily_light$treatment <- factor(daily_light$treatment, levels = c("Control", "Shade", "Deep"))
+
 # Temperature plot
 daily_temp_plot <- ggplot(daily_temp, aes(x=datetime,y=mean_temp, color=treatment)) +
   geom_line(size=1.5) +
@@ -133,7 +136,7 @@ daily_temp_plot <- ggplot(daily_temp, aes(x=datetime,y=mean_temp, color=treatmen
   theme(text = element_text( size=20),legend.position = c(.5, .25), 
         legend.box.background = element_rect(color="black", size=1.5), 
         axis.text.x = element_blank()) +
-  scale_color_manual(values = c("#C0C0E1", "#210124", "#8A4594"))
+  scale_color_manual(values = c("Control" = "#C0C0E1","Deep"= "#210124","Shade"= "#8A4594"))
 
 # Light plot 
 daily_light_plot <- ggplot(daily_light, aes(x=datetime,y=mean_light, color=treatment)) +
@@ -141,7 +144,7 @@ daily_light_plot <- ggplot(daily_light, aes(x=datetime,y=mean_light, color=treat
   labs(y = expression("Mean Daily Light (lum ft"^{-2}*")"), x = "Date", color="Treatment")  +
   theme_bw() + 
   theme(text = element_text( size=20), legend.position = "none") +
-  scale_color_manual(values = c("#C0C0E1", "#210124", "#8A4594"))
+  scale_color_manual(values = c("Control" = "#C0C0E1","Deep"= "#210124","Shade"= "#8A4594"))
 
 #daily_temp_plot
 #daily_light_plot
@@ -168,6 +171,7 @@ raw_s <- read.csv('DATA/TLAP_results_survival.csv') %>%
 
 # make the final column numeric 
 raw_s$survival_10.10.23 <- as.numeric(raw_s$survival_10.10.23)
+raw_s$treatment <- factor(raw_s$treatment, levels = c("control", "shade", "deep"))
 
 # create a surv object 
 surv_object <- Surv(raw_s$days_alive, raw_s$survival_10.10.23)
@@ -180,8 +184,8 @@ plot_treatment <- ggsurvplot(fit1, data = raw_s,
                              size=1.5,
                              legend = c(.25, 0.15), 
                              legend.title = "Treatment", 
-                             legend.labs = c("Control", "Deep", "Shade"), 
-                             palette = c("#C0C0E1", "#210124", "#8A4594"), 
+                             legend.labs = c("Control", "Shade", "Deep"), 
+                             palette = c("#C0C0E1", "#8A4594", "#210124"), 
                              ylim = c(0.91, 1),
                              ylab = c(""), 
                              ggtheme = theme_classic2(base_size=20)
@@ -1026,7 +1030,7 @@ ggsave("TLAP_FIG_S1_Isotopes.jpg", plot=supp_arrange, path = "FIGURES/",width = 
 # SOURCE AAs x Fraction 
 n_source_frac <- raw2 %>% 
   filter(element == "N") %>%
-  select("fraction", "Lys", "Phe")
+  dplyr::select("fraction", "Lys", "Phe")
 matrix1<- as.matrix(n_source_frac[,2:3]) # response variables
 manova1<-manova(matrix1~as.factor(fraction), data=n_source_frac)
 summary(manova1) # p = < 0.0001
@@ -1034,7 +1038,7 @@ summary(manova1) # p = < 0.0001
 # SOURCE AAs x Ecotype 
 n_source_ecotype <- raw2 %>% 
   filter(element == "N") %>%
-  select("Apo_Sym", "Lys", "Phe")
+  dplyr::select("Apo_Sym", "Lys", "Phe")
 matrix2<- as.matrix(n_source_ecotype[,2:3]) # response variables
 manova2<-manova(matrix2~as.factor(Apo_Sym), data=n_source_ecotype)
 summary(manova2) # p = 0.45
@@ -1042,7 +1046,7 @@ summary(manova2) # p = 0.45
 # SOURCE AAs x treatment 
 n_source_treat <- raw2 %>% 
   filter(element == "N") %>%
-  select("treatment", "Lys", "Phe")
+  dplyr::select("treatment", "Lys", "Phe")
 matrix3<- as.matrix(n_source_treat[,2:3]) # response variables
 manova3<-manova(matrix3~as.factor(treatment), data=n_source_treat)
 summary(manova3) # p = 0.507
@@ -1050,15 +1054,15 @@ summary(manova3) # p = 0.507
 # TROPHIC AAs x fraction
 n_trophic_frac <- raw2 %>% 
   filter(element == "N") %>%
-  select("fraction", "Glx", "Asx", "Pro", "Ala", "Leu", "Ile", "Val")
-matrix4<- as.matrix(n_trophic_treat[,2:5]) # response variables
+  dplyr::select("fraction", "Glx", "Asx", "Pro", "Ala", "Leu", "Ile", "Val")
+matrix4<- as.matrix(n_trophic_frac[,2:5]) # response variables
 manova4<-manova(matrix4~as.factor(fraction), data=n_trophic_frac)
 summary(manova4) # p = 2.127e-12
 
 # TROPHIC AAs x treatment 
 n_trophic_treat <- raw2 %>% 
   filter(element == "N") %>%
-  select("treatment", "Glx", "Asx", "Pro", "Ala", "Leu", "Ile", "Val")
+  dplyr::select("treatment", "Glx", "Asx", "Pro", "Ala", "Leu", "Ile", "Val")
 matrix5<- as.matrix(n_trophic_treat[,2:5]) # response variables
 manova5<-manova(matrix5~as.factor(treatment), data=n_trophic_treat)
 summary(manova5) # p = 0.4147
@@ -1066,7 +1070,7 @@ summary(manova5) # p = 0.4147
 # TROPHIC AAs x ecotype
 n_trophic_ecotype <- raw2 %>% 
   filter(element == "N") %>%
-  select("Apo_Sym", "Glx", "Asx", "Pro", "Ala", "Leu", "Ile", "Val")
+  dplyr::select("Apo_Sym", "Glx", "Asx", "Pro", "Ala", "Leu", "Ile", "Val")
 matrix6<- as.matrix(n_trophic_ecotype[,2:5]) # response variables
 manova6<-manova(matrix6~as.factor(Apo_Sym), data=n_trophic_ecotype)
 summary(manova6) # p = 0.445
@@ -1833,6 +1837,122 @@ tp_arrange_all
 
 ggsave("TLAP_FIG_7_trophic_position.jpg", plot=tp_arrange_all, path = "FIGURES/", width = 30, height = 25)
 
+# TROPHIC POSITION for Defense--------------------------------------------------------
+
+# TP by fraction 
+def_tp_frac <- ggplot(tp2_control, aes(x=fraction, y=trophic_position, fill=fraction)) +
+  #DATA 
+  geom_boxplot(alpha=0.8, outlier.size=0) + 
+  geom_point(position = pj, size=4, show.legend = FALSE)+
+  #AESTHETICS 
+  theme_bw() + 
+  labs(y= "Trophic Position (glx-phe)", x = "Fraction", fill="") +
+  scale_fill_manual(values = c("#333333","#1b9e29")) +
+  theme(
+    legend.position = "none",
+    axis.text.y=element_text(size=37), 
+    axis.title=element_text(size=40), 
+    axis.text.x=element_text(size=35)
+  )+
+  stat_compare_means(comparisons = treatment_comparisons3, method = "wilcox.test", size=12) +
+  scale_x_discrete(labels=c("Host" = "Coral", "Sym" = "Symbiont")) +
+  ylim(1,3)
+
+ggsave("TLAP_TP_fraction.jpg", plot=def_tp_frac, path = "FIGURES/Defense/", width = 15, height = 15)
+
+### HOST 
+
+# TP by treatment 
+def_tp_treat <- ggplot(tp_host, aes(x=treatment, y=trophic_position, fill=treatment)) +
+  #DATA 
+  geom_boxplot(alpha=0.9, outlier.size=0) + 
+  geom_point(position = pj, size=4, show.legend = FALSE)+
+  #AESTHETICS 
+  theme_bw() + 
+  labs(y= "Trophic Position (glx-phe)", x = "Treatment", fill="") +
+  scale_fill_manual(values = c("#C0C0E1", "#8A4594", "#210124")) +
+  theme(
+    legend.position = "none", 
+    axis.text.y=element_text(size=37), 
+    axis.title=element_text(size=40), 
+    axis.text.x=element_text(size=35)
+  )+
+  stat_compare_means(comparisons = treatment_comparisons_combined, method = "wilcox.test", size=12) +
+  scale_x_discrete(labels=c("APO" = "Aposymbiotic", "SYM" = "Symbiotic")) +
+  scale_y_continuous(limits = c(1.95, 3), labels = number_format(accuracy = 0.01))+
+  ylim(1,3)
+
+ggsave("TLAP_TP_host_treat.jpg", plot=def_tp_treat, path = "FIGURES/Defense/", width = 15, height = 15)
+
+def_tp_symbionts <- ggplot(tp_host, aes(x=sym.cm2, y=trophic_position)) +
+  #DATA 
+  geom_smooth(method="lm", formula = y ~ x, color="black", fill="gray") +
+  geom_point( size=5) + #aes(color=Apo_Sym),
+  stat_cor(aes(label = paste(..rr.label.., ..p.label.., sep = "~`,`~")), 
+           size=15, label.x = 600000) +
+  #scale_color_manual(values = c("#e4d2ba", "#724a29"))+ 
+  geom_vline(xintercept = 500000, linetype="dashed") + 
+  #AESTHETICS 
+  theme_bw()+
+  labs(y= "Trophic Position (glx-phe)", x = "Symbiont Density", color="Ecotype") +
+  theme( 
+    legend.position = "none", 
+    axis.text.y=element_text(size=37), 
+    axis.title=element_text(size=40), 
+    axis.text.x=element_text(size=35)
+  )+
+  ylim(1.95, 3) +
+  xlim(-1000, 1530000)+
+  ylim(1,3)
+
+ggsave("TLAP_TP_host_frac.jpg", plot=def_tp_symbionts, path = "FIGURES/Defense/", width = 15, height = 15)
+
+#### SYM 
+
+# TP by fraction 
+def_tp_treat_s <- ggplot(tp_sym, aes(x=treatment, y=trophic_position, fill=treatment)) +
+  #DATA 
+  geom_boxplot(alpha=0.9, outlier.size=0) + 
+  geom_point(position = pj, size=4, show.legend = FALSE)+
+  #AESTHETICS 
+  theme_bw() + 
+  labs(y= "Trophic Position (glx-phe)", x = "Treatment", fill="") +
+  scale_fill_manual(values = c("#C0C0E1", "#8A4594", "#210124")) +
+  theme( 
+    legend.position = "none", 
+    axis.text.y=element_text(size=37), 
+    axis.title=element_text(size=40), 
+    axis.text.x=element_text(size=35)
+  ) +
+  scale_x_discrete(labels=c('Control','Shade', 'Deep') ) +
+  stat_compare_means(comparisons = treatment_comparisons_combined, method = "wilcox.test", size=12) + 
+  scale_y_continuous(limits = c(1.9, 2.9), labels = number_format(accuracy = 0.01))
+
+ggsave("TLAP_TP_sym_treat.jpg", plot=def_tp_treat_s, path = "FIGURES/Defense/", width = 15, height = 15)
+
+def_tp_sym_s <- ggplot(tp_sym, aes(x=sym.cm2, y=trophic_position)) +
+  #DATA 
+  geom_smooth(method="lm", formula = y ~ x, color="black", fill="gray") +
+  geom_point( size=5) + #aes(color=Apo_Sym),
+  stat_cor(aes(label = paste(..rr.label.., ..p.label.., sep = "~`,`~")), 
+           size=15, label.x = 600000) +
+  #scale_color_manual(values = c("#e4d2ba", "#724a29"))+ 
+  geom_vline(xintercept = 500000, linetype="dashed") + 
+  #AESTHETICS 
+  theme_bw()+
+  labs(y= "Trophic Position (glx-phe)", x = "Symbiont Density" ~(cells/cm^2), color="Ecotype") +
+  theme(
+    legend.position = "none", 
+    axis.text.y=element_text(size=37), 
+    axis.title=element_text(size=36), 
+    axis.text.x=element_text(size=34)
+  ) +
+  ylim(1.9, 2.9) +
+  xlim(-1000, 1530000)
+
+ggsave("TLAP_TP_sym_frac.jpg", plot=def_tp_sym_s, path = "FIGURES/Defense/", width = 15, height = 15)
+
+
 # SUMV --------------------------------------------------------------------
 
 # calculate sum v
@@ -2170,8 +2290,6 @@ t_test_p <- function(x, y) {
   })
   return(result)
 }
-
-
 
 fidelity_initial <- fid %>%
   group_by(metric) %>%
