@@ -846,7 +846,7 @@ AP23_AFDW_treat <- ggplot(master, aes(x=factor(treatment, level=x_order_combined
   scale_fill_manual(values = c("#C0C0E1", "#9e7bb5", "#3e2f84")) + 
   #labs(x = "", y = expression(atop("Biomass", paste("(mg/cm"^2, ")")))) +
   labs(x = "", y = bquote("Biomass (mg/" ~ cm^2~ ")")) + 
-  ylim(0.001,0.006)
+  ylim(1, 6)
 
 AP23_AFDW_ecotype <- ggplot(master,aes(x=sym.cm2, y=AFDW.mg.cm2)) + 
   #DATA 
@@ -867,8 +867,8 @@ AP23_AFDW_ecotype <- ggplot(master,aes(x=sym.cm2, y=AFDW.mg.cm2)) +
            size=8, label.x = 600000) +
   #specifics 
   scale_color_manual(values = c("#e4d2ba", "#724a29"))+ 
-  labs(x = "", y = "")+ 
-  ylim(0.001,0.006)
+  labs(x = "", y = "") + 
+  ylim(1, 6)
 
 # Graph lipids x treatment 
 AP23_lip_treat <- ggplot(master, aes(x=factor(treatment, level=x_order_combined), y=lipids.mg.cm2, fill=factor(treatment, level=measurement_order))) + 
@@ -889,7 +889,7 @@ AP23_lip_treat <- ggplot(master, aes(x=factor(treatment, level=x_order_combined)
   scale_fill_manual(values = c("#C0C0E1", "#9e7bb5", "#3e2f84")) + 
   #labs(x = "Treatment", y = expression(atop("Total Lipids", paste("(mg/cm"^2, ")")))) + 
   labs(x = "Treatment", y = bquote("Total Lipids (mg/" ~ cm^2 ~ ")")) + 
-  ylim(0,0.003)
+  ylim(0,3)
 
 AP23_lip_ecotype <- ggplot(master,aes(x=sym.cm2, y=lipids.mg.cm2)) + 
   #DATA 
@@ -910,8 +910,8 @@ AP23_lip_ecotype <- ggplot(master,aes(x=sym.cm2, y=lipids.mg.cm2)) +
            size=8, label.x = 600000) +
   #specifics 
   scale_color_manual(values = c("#e4d2ba", "#724a29"))+ 
-  labs(x = "Symbiont Density", y = "")+ 
-  ylim(0,0.003)
+  labs(x = "Symbiont Density", y = "") + 
+  ylim(0,3)
 
 # save the treatment and ecotype plots into objects 
 legends <- plot_grid(legend1_ex, legend2_ex,
