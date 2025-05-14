@@ -42,6 +42,7 @@ treatment_comparisons2 <- list( c("apo_deep","sym_deep"), c("apo_control","sym_c
 treatment_comparisons3 <- list(c("Host","Sym"))
 treatment_comparisons4 <- list(c("APO","SYM"))
 treatment_comparisons_combined <- list( c("control","shade"), c("control","deep"))
+treatment_comparisons_enviro <- list( c("Control","Shade"), c("Control","Deep"))
 
 # define orders for different graphs 
 measurement_order <- c('control','shade','deep') 
@@ -55,11 +56,14 @@ a_s_list <- list(c('APO','SYM'))
 pj <- position_jitterdodge(jitter.width=0.2, seed=9,
                            jitter.height = 0)
 
-# ENVIRONMENTAL: data prep--------------------------------------------------
+# ENVIRONMENTAL: data prep & Stats (Table S1, S2)--------------------------------------------------
 
 # Master data set 
 enviro <- read.csv('DATA/TLAP_results_enviro(C).csv') %>%
-  dplyr::select(!X)
+  dplyr::select(!X) %>%
+  mutate(light.a = light.a*0.09290304) %>%
+  mutate(light.b = light.b*0.09290304) %>%
+  mutate(light.c = light.c*0.09290304)
 
 # make it datetime format 
 enviro$datetime <- mdy_hm(enviro$datetime,tz=Sys.timezone())
@@ -68,8 +72,10 @@ colnames(enviro) <- c('datetime','temp.Control','light.Control','temp.Shade','li
 
 # save only earlier dates 
 enviro <- enviro %>%
-  filter(datetime <= "2023-08-08") %>%
-  filter(datetime >= "2023-06-21")
+  filter(datetime <= "2023-08-09") %>%
+  filter(datetime >= "2023-06-21") %>%
+  mutate(date = as.Date(datetime)) %>%
+  filter(date != "2023-08-09")
 
 # current means 
 colMeans(enviro[,2:7], na.rm = TRUE)
@@ -87,21 +93,33 @@ enviro_summary <- long %>%
 # save summary file 
 write.csv(enviro_summary, "STATS/TLAP_STATS_Enviro_means.csv", row.names = FALSE)
 
-# reorganize data and get mean daily values 
-long_temp <- long %>% filter(variable == "temp")
-long_temp$datetime <- as.Date(long_temp$datetime)
-daily_temp <-long_temp %>% group_by(datetime,treatment) %>%
-  summarize(mean_temp = mean(value))
-long_light <- long %>% filter(variable == "light")
-long_light$datetime <- as.Date(long_light$datetime)
-daily_light <-long_light %>% group_by(datetime,treatment) %>%
-  summarize(mean_light = mean(value))
+# calculate daily means for light and temp 
+enviro_daily <- enviro %>% 
+  mutate(date = as.Date(datetime)) %>%
+  group_by(date) %>%
+  summarize(across(
+    c(temp.Control, light.Control, temp.Shade, light.Shade, temp.Deep, light.Deep),
+    \(x) mean(x, na.rm = TRUE)
+  ))
 
-# ENVIRONMENTAL: Statistics (Table S1) --------------------------------
+# make df for daily light 
+daily_light <- enviro_daily %>%
+  select(date, light.Control, light.Shade, light.Deep) %>%
+  pivot_longer(cols = c(light.Control,light.Shade, light.Deep),
+               names_to = "treatment", values_to = "value") %>%
+  separate(.,treatment, c("variable","treatment"))
+
+# make df for daily temp 
+daily_temp <- enviro_daily %>%
+  select(date, temp.Control, temp.Shade, temp.Deep) %>%
+  pivot_longer(cols = c(temp.Control,temp.Shade,temp.Deep),
+               names_to = "treatment", values_to = "value") %>%
+  separate(.,treatment, c("variable","treatment"))
+
 
 # write function 
-perform_paired_t_test <- function(group1, group2, group_label) {
-  t_test <- t.test(group1, group2, paired = TRUE)
+perform_t_test <- function(group1, group2, group_label) {
+  t_test <- t.test(group1, group2)
   data.frame(
     Comparison = group_label,
     t = t_test$statistic,
@@ -112,24 +130,24 @@ perform_paired_t_test <- function(group1, group2, group_label) {
 
 # Perform the t-tests and collect results
 test_results_list <- list(
-  perform_paired_t_test(enviro$temp.Control, enviro$temp.Shade, "Temp Control vs. Shade"),
-  perform_paired_t_test(enviro$temp.Control, enviro$temp.Deep, "Temp Control vs. Deep"),
-  perform_paired_t_test(enviro$light.Control, enviro$light.Shade, "Light Control vs. Shade"),
-  perform_paired_t_test(enviro$light.Control, enviro$light.Deep, "Light Control vs. Deep")
+  perform_t_test(enviro_daily$temp.Control, enviro_daily$temp.Shade, "Temp Control vs. Shade"),
+  perform_t_test(enviro_daily$temp.Control, enviro_daily$temp.Deep, "Temp Control vs. Deep"),
+  perform_t_test(enviro_daily$light.Control, enviro_daily$light.Shade, "Light Control vs. Shade"),
+  perform_t_test(enviro_daily$light.Control, enviro_daily$light.Deep, "Light Control vs. Deep")
 )
 
 # Combine all results into one data frame
 all_enviro <- do.call(rbind, test_results_list)
 
-write.csv(all_enviro, "STATS/TLAP_STATS_Enviro_paired-t-test.csv", row.names = FALSE)
+write.csv(all_enviro, "STATS/TLAP_STATS_Enviro_t-test.csv", row.names = FALSE)
 
-# ENVIRONMENTAL: Graph temp & light (Fig 2------------------------------------
+# Environmental: OLD ------------------------------------------------------
 
 daily_temp$treatment <- factor(daily_temp$treatment, levels = c("Control", "Shade", "Deep"))
 daily_light$treatment <- factor(daily_light$treatment, levels = c("Control", "Shade", "Deep"))
 
 # Temperature plot
-daily_temp_plot <- ggplot(daily_temp, aes(x=datetime,y=mean_temp, color=treatment)) +
+daily_temp_plot <- ggplot(daily_temp, aes(x=date,y=value, color=treatment)) +
   geom_line(size=1.5) +
   labs(y= "Mean Daily Temperature (˚C)", x = "", color="Treatment") +
   theme_bw() + 
@@ -139,7 +157,7 @@ daily_temp_plot <- ggplot(daily_temp, aes(x=datetime,y=mean_temp, color=treatmen
   scale_color_manual(values = c("Control" = "#C0C0E1","Deep"= "#210124","Shade"= "#8A4594"))
 
 # Light plot 
-daily_light_plot <- ggplot(daily_light, aes(x=datetime,y=mean_light, color=treatment)) +
+daily_light_plot <- ggplot(daily_light, aes(x=date,y=value, color=treatment)) +
   geom_line(size=1.5) +
   labs(y = expression("Mean Daily Light (lum ft"^{-2}*")"), x = "Date", color="Treatment")  +
   theme_bw() + 
@@ -149,20 +167,61 @@ daily_light_plot <- ggplot(daily_light, aes(x=datetime,y=mean_light, color=treat
 #daily_temp_plot
 #daily_light_plot
 
-temp1 <- ggplotGrob(daily_temp_plot)
-light1 <- ggplotGrob(daily_light_plot)
+temp2 <- ggplotGrob(daily_temp_plot)
+light2 <- ggplotGrob(daily_light_plot)
 
 #combine ecotype and treatment 
-enviro_arrange <- grid.arrange(temp1, light1, nrow=2,
+enviro_arrange <- grid.arrange(temp2, light2, nrow=2,
                                bottom = grobTree(
                                  textGrob("A", x = 0.08, y = 97, just = "left", gp = gpar(fontsize = 18, fontface = "bold")),
                                  textGrob("B", x = 0.1, y = 47, just = "right", gp = gpar(fontsize = 18, fontface = "bold"))))
 
 #save graphs 
-ggsave("TLAP_FIG_2_Enviro.jpg", plot = enviro_arrange, path = 'FIGURES/', width = 10, height = 10)
+ggsave("TLAP_FIG_S2_Enviro.jpg", plot = enviro_arrange, path = 'FIGURES/', width = 10, height = 10)
 
+# ENVIRONMENTAL: Graph temp & light boxplots (Fig 1b,c) ------------------------------------------------
 
-# SURVIVAL: data prep & Graph (Fig 3) --------------------------------------------------------------
+daily_temp$treatment <- factor(daily_temp$treatment, levels = c("Control", "Shade", "Deep"))
+daily_light$treatment <- factor(daily_light$treatment, levels = c("Control", "Shade", "Deep"))
+
+# Temperature plot
+temp_box <- ggplot(daily_temp, aes(x=treatment, y=value, fill=treatment)) +
+  geom_boxplot() + 
+  labs(y= "Mean Daily Temperature (˚C)", x = "", fill="Treatment") + 
+  theme_bw() + 
+  theme(text = element_text(size=25), 
+        legend.position = "none", 
+        axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank()
+  ) +
+  ylim(c(17,22.5)) + 
+  scale_fill_manual(values = c("Control" = "#C0C0E1","Deep"= "#210124","Shade"= "#8A4594")) +
+  stat_compare_means(comparisons = treatment_comparisons_enviro, method = "t.test", size=7) 
+temp_box
+
+# Light plot 
+light_box <- ggplot(daily_light, aes(x=treatment, y=value, fill=treatment)) +
+  geom_boxplot() + 
+  labs(y = expression("Mean Daily Light (lum m"^{-2}*")"),  x = "", fill="Treatment") + 
+  theme_bw() + 
+  theme(text = element_text(size=25), 
+        legend.position = "none", 
+        axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank()
+  ) +
+  ylim(c(0,4)) + 
+  scale_fill_manual(values = c("Control" = "#C0C0E1","Deep"= "#210124","Shade"= "#8A4594")) +
+  stat_compare_means(comparisons = treatment_comparisons_enviro, method = "t.test", size=7) 
+light_box
+
+temp1 <- ggplotGrob(temp_box)
+light1 <- ggplotGrob(light_box)
+
+#combine ecotype and treatment 
+enviro_arrange2 <- grid.arrange(temp1, light1, nrow=1)
+                               
+#save graphs 
+ggsave("TLAP_FIG_1_Enviro_box.jpg", plot = enviro_arrange2, path = 'FIGURES/', width = 5, height = 8)
+
+# SURVIVAL: data prep & Graph (Fig 2) --------------------------------------------------------------
 
 # load data and filter out only dead and alive individuals 
 raw_s <- read.csv('DATA/TLAP_results_survival.csv') %>%
@@ -220,9 +279,9 @@ survival_arrange <- grid.arrange(surv1, surv2, nrow=1,
                                    textGrob("B", x = 0.57, y = 78, just = "right", gp = gpar(fontsize = 18, fontface = "bold"))))
 
 #save graphs 
-ggsave("TLAP_FIG_3_surival.jpg", plot = survival_arrange , path = 'FIGURES/', width = 12, height = 8)
+ggsave("TLAP_FIG_2_surival.jpg", plot = survival_arrange , path = 'FIGURES/', width = 12, height = 8)
 
-# SURVIVAL: Statistics ----------------------------------------------------
+# SURVIVAL: Statistics (Fig 2) ----------------------------------------------------
 
 # Define a function to perform a log-rank test and extract the results
 perform_log_rank_test <- function(surv_object, grouping_variable, data) {
@@ -307,7 +366,7 @@ count_results <- count_results %>%
 write.csv(count_results, "STATS/TLAP_STATS_survival_counts.csv", row.names = FALSE)
 
 
-# ECOTYPE SWITCHING: analysis & graph (Fig 4) -------------------------------------
+# ECOTYPE SWITCHING: analysis & graph (Fig 3) -------------------------------------
 
 # read phys data 
 master <- read.csv('DATA/TLAP_results_meta_phys.csv') %>%
@@ -510,10 +569,10 @@ all <- grid.arrange(sankey_control, sankey_shade, sankey_deep, nrow=3,
                       textGrob("100%", x = .66, y = 12, just = "right", gp = gpar(fontsize = 16))
                     ))
 
-ggsave("TLAP_FIG_4_ecotype_switch.jpg", all, path = 'FIGURES/', height=10, width = 12)
+ggsave("TLAP_FIG_3_ecotype_switch.jpg", all, path = 'FIGURES/', height=10, width = 12)
 
 
-# PHYSIOLOGY: graphing (Fig 5) ------------------------------------------------------------
+# PHYSIOLOGY: graphing (Fig 4) ------------------------------------------------------------
 
 # create new columns 
 master <- master %>%
@@ -702,15 +761,16 @@ AP23_cal_treat <- ggplot(master, aes(x=factor(treatment, level=x_order_combined)
   theme(legend.position="none", 
         text = element_text( size=40), 
         axis.text.y = element_text(size=30), 
-        axis.text.x = element_text(size=30),
+        axis.text.x = element_text(size=35),
+        axis.title.x = element_text(size=45),
         plot.margin=unit(c(0,0,0,0.5),"cm")
   ) +
   stat_compare_means(comparisons = treatment_comparisons_combined, method = "wilcox.test", size=10) + 
   #specifics 
   scale_x_discrete(labels=c('Control','Shade', 'Deep') ) +
   scale_fill_manual(values = c("#C0C0E1", "#9e7bb5", "#3e2f84")) + 
-  #labs(x = "Treatment", y = expression(atop("Calice Density", paste("(Polyps per cm2)")))) +
-  labs(x = "Treatment", y = bquote("Calice Density (Polyps per" ~ cm^2 ~ ")")) + 
+  labs(x = bquote("Treatment" ~  ~ " "), y = bquote("Calice Density (Polyps per" ~ cm^2 ~ ")")) + 
+  #labs(x = "Treatment", y = bquote("Calice Density (Polyps per" ~ cm^2 ~ ")")) + 
   ylim(0.5,5)
 
 # calice density by treatment 
@@ -723,18 +783,25 @@ AP23_cal_ecotype <- ggplot(master,aes(x=sym.cm2, y=calice_density)) +
   theme_bw() +
   theme(legend.position="none", 
         text = element_text( size=40), 
-        #axis.text.x = element_blank(), 
+        axis.text.x = element_text(size=30),
+        axis.title.x = element_text(size=35),
         axis.ticks.x= element_blank(),
         axis.text.y = element_blank(), 
         axis.ticks.y= element_blank(), 
         plot.margin=unit(c(0,1.5,0,0),"cm")
   ) +
+  scale_x_continuous(
+    #limits = c(0, 1900000),  # Set y-axis limits
+    labels = function(x) {scales::label_scientific()(signif(x, 1))} ) + 
   stat_cor(aes(label = paste(..rr.label.., ..p.label.., sep = "~`,`~")), 
            size=8, label.x = 600000) +
   #specifics 
   scale_color_manual(values = c("#e4d2ba", "#724a29"))+ 
-  labs(x = "Symbiont Density", y = "") +
+ # labs(x = "Symbiont Density", y = "") +
+  labs(y = "", x = bquote("Symbiont Density (cells/" ~ cm^2 ~ ")"),  fill = "Treatment") + 
   ylim(0.5,5)
+
+AP23_cal_ecotype
 
 # Graph antioxidants x treatment 
 AP23_AO_treat <- ggplot(master, aes(x=factor(treatment, level=x_order_combined), y=cre.umol.mgprot, fill=factor(treatment, level=measurement_order))) + 
@@ -880,7 +947,8 @@ AP23_lip_treat <- ggplot(master, aes(x=factor(treatment, level=x_order_combined)
   theme(legend.position="none", 
         text = element_text( size=40), 
         axis.text.y = element_text(size=30), 
-        axis.text.x = element_text(size=30),
+        axis.text.x = element_text(size=35),
+        axis.title.x = element_text(size=45),
         #plot.margin=unit(c(0,0,0.5,1),"cm")
   ) +
   stat_compare_means(comparisons = treatment_comparisons_combined, method = "wilcox.test", size=8) + 
@@ -888,7 +956,8 @@ AP23_lip_treat <- ggplot(master, aes(x=factor(treatment, level=x_order_combined)
   scale_x_discrete(labels=c('Control','Shade', 'Deep') ) +
   scale_fill_manual(values = c("#C0C0E1", "#9e7bb5", "#3e2f84")) + 
   #labs(x = "Treatment", y = expression(atop("Total Lipids", paste("(mg/cm"^2, ")")))) + 
-  labs(x = "Treatment", y = bquote("Total Lipids (mg/" ~ cm^2 ~ ")")) + 
+  labs(x = bquote("Treatment" ~  ~ " "), y = bquote("Total Lipids (mg/" ~ cm^2 ~ ")")) + 
+  #labs(y = "", x = bquote("Symbiont Density (cells/" ~ cm^2 ~ ")"),  fill = "Treatment") 
   ylim(0,3)
 
 AP23_lip_ecotype <- ggplot(master,aes(x=sym.cm2, y=lipids.mg.cm2)) + 
@@ -900,7 +969,8 @@ AP23_lip_ecotype <- ggplot(master,aes(x=sym.cm2, y=lipids.mg.cm2)) +
   theme_bw() +
   theme(legend.position="none", 
         text = element_text( size=40), 
-        #axis.text.x = element_blank(), 
+        axis.text.x = element_text(size=30),
+        axis.title.x = element_text(size=35),
         axis.ticks.x= element_blank(),
         axis.text.y = element_blank(), 
         axis.ticks.y= element_blank(), 
@@ -911,35 +981,39 @@ AP23_lip_ecotype <- ggplot(master,aes(x=sym.cm2, y=lipids.mg.cm2)) +
   #specifics 
   scale_color_manual(values = c("#e4d2ba", "#724a29"))+ 
   labs(x = "Symbiont Density", y = "") + 
-  ylim(0,3)
+  ylim(0,3) +
+  scale_x_continuous(
+    labels = function(x) {scales::label_scientific()(signif(x, 1))} ) + 
+  labs(y = "", x = bquote("Symbiont Density (cells/" ~ cm^2 ~ ")"),  fill = "Treatment") 
+AP23_lip_ecotype
 
 # save the treatment and ecotype plots into objects 
 legends <- plot_grid(legend1_ex, legend2_ex,
                       ncol = 2)
 g_treat1 <- plot_grid(AP23_sym_treat, AP23_chl_treat,AP23_chl_sym_treat, AP23_cal_treat, 
                       ncol = 1, align = "v", 
-                      labels = c("A", "E", "I", "M"),  label_size = 35, label_x = 0.36, label_y = 0.99)
+                      labels = c("A", "E", "I", "M"),  label_size = 35, label_x = 0.3, label_y = 0.99)
 g_eco1 <-plot_grid( AP23_sym_ecotype,AP23_chl_ecotype,AP23_chl_sym_ecotype, AP23_cal_ecotype, 
                     ncol = 1,
                     labels = c("B", "F", "J", "N"),  label_size = 35, label_x = 0.08, label_y = 0.99)
 g_treat2 <-plot_grid(AP23_AO_treat, AP23_prot_treat,AP23_AFDW_treat, AP23_lip_treat, 
                      ncol = 1, align = "v", 
-                     labels = c("C", "G", "K", "O"),  label_size = 35, label_x = 0.33, label_y = 0.99)
+                     labels = c("C", "G", "K", "O"),  label_size = 35, label_x = 0.22, label_y = 0.99)
 g_eco2 <-plot_grid(AP23_AO_ecotype, AP23_prot_ecotype,AP23_AFDW_ecotype,AP23_lip_ecotype,
                    ncol = 1, align = "v",
                    labels = c("D", "H", "L", "P"),  label_size = 35, label_x = 0.08, label_y = 0.99)
 
 # combine 
 all_metab <-plot_grid(g_treat1, g_eco1, g_treat2, g_eco2, 
-                      ncol = 4, rel_widths = c(1, 1.3, 1, 1.3))
+                      ncol = 4, rel_widths = c(1.1,1,1,1))
 all_metab2 <-plot_grid(all_metab,legends,
                       ncol = 1, rel_heights = c(6, 0.3))
 
 #save 2x6 graphs 
-ggsave("TLAP_Fig_5_phys.jpg", plot = all_metab2, path = 'FIGURES/', width = 30, height = 40)
+ggsave("TLAP_Fig_4_phys.jpg", plot = all_metab2, path = 'FIGURES/', width = 30, height = 40)
 
 
-# ISOTOPES: data & basic plots (Fig S1) ----------------------------------------------------------------
+# ISOTOPES: data & basic plots (Fig S2) ----------------------------------------------------------------
 
 # load raw isotope data 
 raw <- read.csv('~/Desktop/GITHUB/TL_Astrangia/TLAP_CSIA/TLAP_CSIA_results.csv') %>%
@@ -1021,7 +1095,7 @@ supp_arrange <- grid.arrange(c_boxplot_frac, N_boxplot_frac, nrow=2,
                                textGrob("B", x = 0.1, y = 71, just = "right", gp = gpar(fontsize = 30, fontface = "bold"))
                              ))
 
-ggsave("TLAP_FIG_S1_Isotopes.jpg", plot=supp_arrange, path = "FIGURES/",width = 15, height = 15)
+ggsave("TLAP_FIG_S3_Isotopes.jpg", plot=supp_arrange, path = "FIGURES/",width = 15, height = 15)
 
 # ISOTOPES: amino acid stats  ---------------------------------------------
 
@@ -1307,7 +1381,7 @@ t_clrs <- matrix(c("#4d2f51", "#4d2f51", "#4d2f51",
                    "#8A4594", "#8A4594", "#8A4594"), nrow = 3, ncol = 3)
 
 
-# ISOTOPES: SIBER plots (FIG 6) ---------------------------------------------------
+# ISOTOPES: SIBER plots (FIG 5) ---------------------------------------------------
 
 # SIBER BY FRACTION
 
@@ -1671,7 +1745,7 @@ NB_vals <- raw2 %>%
   group_by(AA, fraction) %>%
   summarise(mean = mean(deltN), sd = sd(deltN))
 
-# TROPHIC POSITION --------------------------------------------------------
+# TROPHIC POSITION (FIG 6) --------------------------------------------------------
 
 # Trophic position (tp) can be calculated using the following equation:  tp = 1+((Glx-Phe-beta)/TDF)
 # where 
@@ -1808,7 +1882,10 @@ tp_sym_s <- ggplot(tp_sym, aes(x=sym.cm2, y=trophic_position)) +
     plot.margin=unit(c(0,1,0,0),"cm")
   ) +
   ylim(1.9, 2.9) +
-  xlim(-1000, 1530000)
+  #xlim(-1000, 1530000) +
+  scale_x_continuous(
+    limits = c(-1000, 1530000),  # Set y-axis limits
+    labels = function(x) {scales::label_scientific()(signif(x, 1))} ) 
 
 ## Arrange host graphs 
 
@@ -1835,7 +1912,7 @@ tp_arrange_all <- grid.arrange(tp_frac, tp_arrange_both, nrow=1, left=yleft, wid
                                ))
 tp_arrange_all
 
-ggsave("TLAP_FIG_7_trophic_position.jpg", plot=tp_arrange_all, path = "FIGURES/", width = 30, height = 25)
+ggsave("TLAP_FIG_6_trophic_position.jpg", plot=tp_arrange_all, path = "FIGURES/", width = 30, height = 25)
 
 # TROPHIC POSITION for Defense--------------------------------------------------------
 
@@ -1953,7 +2030,7 @@ def_tp_sym_s <- ggplot(tp_sym, aes(x=sym.cm2, y=trophic_position)) +
 ggsave("TLAP_TP_sym_frac.jpg", plot=def_tp_sym_s, path = "FIGURES/Defense/", width = 15, height = 15)
 
 
-# SUMV --------------------------------------------------------------------
+# SUMV (Fig 7) --------------------------------------------------------------------
 
 # calculate sum v
 sumV <- raw2 %>% 
@@ -2114,7 +2191,7 @@ sumV_arrange_all <- grid.arrange(sumV_frac, sumV_arrange_both, nrow=1, left=ylef
                                  ))
 sumV_arrange_all
 
-ggsave("TLAP_FIG_8_sumV.jpg", plot=sumV_arrange_all, path = "FIGURES/", width = 30, height = 25)
+ggsave("TLAP_FIG_7_sumV.jpg", plot=sumV_arrange_all, path = "FIGURES/", width = 30, height = 25)
 
 # PHYSIOLOGY + ISOTOPES: statistics --------------------------------------------------
 
