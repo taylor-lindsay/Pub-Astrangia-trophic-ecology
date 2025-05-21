@@ -2170,8 +2170,8 @@ sumV_sym_s <- ggplot(sumV_sym, aes(x=sym.cm2, y=sum_v)) +
 
 # designate the y axis label
 yleft <- textGrob("ΣV", rot=90, gp = gpar(fontsize = 55, fontface = "bold"))
-yleft_h <- textGrob("Host", rot=90, gp = gpar(fontsize = 45, fontface = "bold"))
-yleft_s <- textGrob("Symbiont", rot=90, gp = gpar(fontsize = 45, fontface = "bold"))
+yleft_h <- textGrob("Host ΣV", rot=90, gp = gpar(fontsize = 45, fontface = "bold"))
+yleft_s <- textGrob("Symbiont ΣV", rot=90, gp = gpar(fontsize = 45, fontface = "bold"))
 
 ## Arrange host graphs 
 sumV_arrange <- grid.arrange(sumV_treat, sumV_symbionts, nrow=1, left=yleft_h, widths=c(1,1.5))
@@ -2183,7 +2183,7 @@ sumV_arrange_both <- grid.arrange(sumV_arrange, sumV_arrange_s, nrow=2)
 
 sumV_arrange_all <- grid.arrange(sumV_frac, sumV_arrange_both, nrow=1, left=yleft, widths=c(0.5,1.5),
                                  bottom = grobTree(
-                                   textGrob("A", x = 0.04, y = 245, just = "left", gp = gpar(fontsize = 42, fontface = "bold")),
+                                   textGrob("A", x = 0.06, y = 245, just = "left", gp = gpar(fontsize = 42, fontface = "bold")),
                                    textGrob("B", x = 0.34, y = 245, just = "right", gp = gpar(fontsize = 42, fontface = "bold")),
                                    textGrob("C", x = 0.6, y = 245, just = "right", gp = gpar(fontsize = 42, fontface = "bold")),
                                    textGrob("D", x = 0.34, y = 120, just = "right", gp = gpar(fontsize = 42, fontface = "bold")),
